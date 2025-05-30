@@ -25,7 +25,7 @@ from k4FWCore.parseArgs import parser
 # parse the custom arguments
 parser_group = parser.add_argument_group("PerformMLPF.py custom options")
 parser_group.add_argument("--inputFiles", nargs="+", metavar=("file1", "file2"), help="One or multiple input files",
-                        default=["/afs/cern.ch/work/l/lherrman/private/inference/data/Hss_sim_16755_1.root"])
+                        default=["/afs/cern.ch/work/l/lherrman/private/inference/data/Hss_rec_16809_40.root"])
 #parser_group.add_argument("--outputFile", help="Output file name", default="output_MLPF.root")
 parser_group.add_argument("--num_ev", type=int, help="Number of events to process (-1 means all)", default=-1)
 

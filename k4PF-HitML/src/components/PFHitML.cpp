@@ -29,12 +29,12 @@
 #include "edm4hep/CalorimeterHitCollection.h"
 
 
- 
+//others
+#include "ObservableExtractor.h"
+
  /**
   include description
   */
-
-
 
 
 
@@ -42,27 +42,53 @@ struct PFHitML final:
    k4FWCore::MultiTransformer<
    std::tuple<>(
 
-    const edm4hep::MCParticleCollection&
+    const edm4hep::MCParticleCollection&,
+    const edm4hep::CalorimeterHitCollection&,
+    const edm4hep::CalorimeterHitCollection&
 
    )> {
 
     PFHitML(const std::string& name, ISvcLocator* svcLoc)
       : k4FWCore::MultiTransformer<
       std::tuple<>(
-        const edm4hep::MCParticleCollection&)>(
+        const edm4hep::MCParticleCollection&,
+        const edm4hep::CalorimeterHitCollection&,
+        const edm4hep::CalorimeterHitCollection&)>(
         name, svcLoc,
           {
-            KeyValues("MCParticles", {"MCParticles"})
+            KeyValues("MCParticles", {"MCParticles"}),
+            KeyValues("EcalBarrelHits", {"ECALBarrel"}),
+            KeyValues("HcalBarrelHits", {"HCALBarrel"})
           },
           {}  // no Outputs
         ) {}
 
   // main
   std::tuple<> operator()(
-    const edm4hep::MCParticleCollection& mc_particles
+    const edm4hep::MCParticleCollection& mc_particles,
+    const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
+    const edm4hep::CalorimeterHitCollection& HcalBarrel_hits
   ) const override {
 
     info() << "MCParticles: " << mc_particles.size() << endmsg;
+    info() << "EcalBarrelHits: " << EcalBarrel_hits.size() << endmsg;
+    info() << "HcalBarrelHits: " << HcalBarrel_hits.size() << endmsg;
+
+    ObservableExtractor extractor(mc_particles, EcalBarrel_hits, HcalBarrel_hits);
+    std::map<std::string, std::vector<float>> inputs = extractor.extract();
+
+    //for debugging
+    for (const auto& [key, valueVec] : inputs) {
+      std::cout << key << ": [";
+      for (size_t i = 0; i < valueVec.size(); ++i) {
+          std::cout << valueVec[i];
+          if (i < valueVec.size() - 1) {
+              std::cout << ", ";
+          }
+      }
+      std::cout << "]" << std::endl;
+    }
+  
 
     return {}; // no outputs
   }
