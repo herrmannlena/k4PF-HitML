@@ -44,6 +44,8 @@ struct PFHitML final:
 
     const edm4hep::MCParticleCollection&,
     const edm4hep::CalorimeterHitCollection&,
+    const edm4hep::CalorimeterHitCollection&,
+    const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&
 
    )> {
@@ -53,12 +55,16 @@ struct PFHitML final:
       std::tuple<>(
         const edm4hep::MCParticleCollection&,
         const edm4hep::CalorimeterHitCollection&,
+        const edm4hep::CalorimeterHitCollection&,
+        const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&)>(
         name, svcLoc,
           {
             KeyValues("MCParticles", {"MCParticles"}),
             KeyValues("EcalBarrelHits", {"ECALBarrel"}),
-            KeyValues("HcalBarrelHits", {"HCALBarrel"})
+            KeyValues("HcalBarrelHits", {"HCALBarrel"}),
+            KeyValues("EcalBarrelHits", {"ECALEndcap"}),
+            KeyValues("HcalBarrelHits", {"HCALEndcap"})
           },
           {}  // no Outputs
         ) {}
@@ -67,14 +73,18 @@ struct PFHitML final:
   std::tuple<> operator()(
     const edm4hep::MCParticleCollection& mc_particles,
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
-    const edm4hep::CalorimeterHitCollection& HcalBarrel_hits
+    const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
+    const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
+    const edm4hep::CalorimeterHitCollection& HcalEndcap_hits
   ) const override {
 
     info() << "MCParticles: " << mc_particles.size() << endmsg;
     info() << "EcalBarrelHits: " << EcalBarrel_hits.size() << endmsg;
     info() << "HcalBarrelHits: " << HcalBarrel_hits.size() << endmsg;
+    info() << "EcalEndcapHits: " << EcalEndcap_hits.size() << endmsg;
+    info() << "HcalEndcapHits: " << HcalEndcap_hits.size() << endmsg;
 
-    ObservableExtractor extractor(mc_particles, EcalBarrel_hits, HcalBarrel_hits);
+    ObservableExtractor extractor(mc_particles, EcalBarrel_hits, HcalBarrel_hits, EcalEndcap_hits, HcalEndcap_hits);
     std::map<std::string, std::vector<float>> inputs = extractor.extract();
 
     //for debugging

@@ -28,20 +28,38 @@
 ObservableExtractor::ObservableExtractor(
     const edm4hep::MCParticleCollection& mc_particles,
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
-    const edm4hep::CalorimeterHitCollection& HcalBarrel_hits)
-    : mc_(mc_particles), ecalbarrel_(EcalBarrel_hits), hcalbarrel_(HcalBarrel_hits) {}
+    const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
+    const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
+    const edm4hep::CalorimeterHitCollection& HcalEndcap_hits)
+    : mc_(mc_particles), ecalbarrel_(EcalBarrel_hits), hcalbarrel_(HcalBarrel_hits),
+    ecalendcap_(EcalEndcap_hits), hcalendcap_(HcalEndcap_hits) {}
   
 
 std::map<std::string, std::vector<float>> ObservableExtractor::extract() const {
     std::map<std::string, std::vector<float>> features;
 
     //stelle dir deine collections zusammen: zB aus calorimeterhits und appende hier
-  
-    // Example features:
-    features["hit_px"].push_back(static_cast<float>(100));
-    features["hit_py"].push_back(static_cast<float>(100));
-    features["hit_pz"].push_back(static_cast<float>(100));
-  
+    // collection of hits
+    std::vector<const edm4hep::CalorimeterHitCollection*> hit_collections = {
+        &ecalbarrel_,
+        &hcalbarrel_,
+        &ecalendcap_,
+        &hcalendcap_
+    };
+       // hcal_other,
+       // "MUON"
+   
+
+    for (const auto* hit_collection : hit_collections){
+        for (const auto& hit : *hit_collection){
+            auto pos = hit.getPosition();
+            float x = pos.x;
+
+            features["hit_x"].push_back(x);
+            
+        }
+    }
+
   
     return features;
   }

@@ -30,7 +30,9 @@
  public:
     ObservableExtractor(const edm4hep::MCParticleCollection& mc_particles,
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
-    const edm4hep::CalorimeterHitCollection& HcalBarrel_hits);
+    const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
+    const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
+    const edm4hep::CalorimeterHitCollection& HcalEndcap_hits);
 
     std::map<std::string, std::vector<float>> extract() const;
 
@@ -38,6 +40,10 @@
     const edm4hep::MCParticleCollection& mc_;
     const edm4hep::CalorimeterHitCollection& ecalbarrel_;
     const edm4hep::CalorimeterHitCollection& hcalbarrel_;
+    const edm4hep::CalorimeterHitCollection& ecalendcap_;
+    const edm4hep::CalorimeterHitCollection& hcalendcap_;
+
+    //was private, was public?
 
   };
  
