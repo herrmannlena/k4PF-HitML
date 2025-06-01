@@ -30,9 +30,11 @@ ObservableExtractor::ObservableExtractor(
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
-    const edm4hep::CalorimeterHitCollection& HcalEndcap_hits)
+    const edm4hep::CalorimeterHitCollection& HcalEndcap_hits,
+    const edm4hep::CalorimeterHitCollection& HcalOther_hits,
+    const edm4hep::CalorimeterHitCollection& Muon_hits)
     : mc_(mc_particles), ecalbarrel_(EcalBarrel_hits), hcalbarrel_(HcalBarrel_hits),
-    ecalendcap_(EcalEndcap_hits), hcalendcap_(HcalEndcap_hits) {}
+    ecalendcap_(EcalEndcap_hits), hcalendcap_(HcalEndcap_hits), hcalother_(HcalOther_hits), muons_(Muon_hits){}
   
 
 std::map<std::string, std::vector<float>> ObservableExtractor::extract() const {
@@ -40,22 +42,45 @@ std::map<std::string, std::vector<float>> ObservableExtractor::extract() const {
 
     //stelle dir deine collections zusammen: zB aus calorimeterhits und appende hier
     // collection of hits
-    std::vector<const edm4hep::CalorimeterHitCollection*> hit_collections = {
-        &ecalbarrel_,
-        &hcalbarrel_,
-        &ecalendcap_,
-        &hcalendcap_
+    std::vector<std::pair<std::string, const edm4hep::CalorimeterHitCollection*>> hit_collections = {
+        {"ECAL_BARREL", &ecalbarrel_},
+        {"HCAL_BARREL", &hcalbarrel_},
+        {"ECAL_ENDCAP", &ecalendcap_},
+        {"HCAL_ENDCAP", &hcalendcap_},
+        {"HCAL_OTHER",  &hcalother_},
+        {"MUON",        &muons_}
     };
-       // hcal_other,
-       // "MUON"
-   
 
-    for (const auto* hit_collection : hit_collections){
+
+    for (const auto& [name, hit_collection] : hit_collections){
         for (const auto& hit : *hit_collection){
+
             auto pos = hit.getPosition();
+            auto t = hit.getTime();
+            auto energy = hit.getEnergy();
+            
             float x = pos.x;
+            float y = pos.y;
+            float z = pos.z;
+            float r = std::sqrt(x*x+y*y+z*z);
+            float theta = std::acos(z/r);
+            float phi = std::atan2(y, x);
+
+            int htype = 2;  // Default to 2 (ECAL)
+            if (name.find("HCAL") != std::string::npos) {
+                htype = 3;
+            } else if (name.find("MUON") != std::string::npos) {
+                htype = 4;
+            }
 
             features["hit_x"].push_back(x);
+            features["hit_y"].push_back(y);
+            features["hit_z"].push_back(z);
+            features["hit_t"].push_back(t);
+            features["hit_e"].push_back(energy);
+            features["hit_theta"].push_back(theta);
+            features["hit_phi"].push_back(phi);
+            features["hit_htype"].push_back(htype);
             
         }
     }

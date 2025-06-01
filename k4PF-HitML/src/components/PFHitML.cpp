@@ -46,6 +46,8 @@ struct PFHitML final:
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
+    const edm4hep::CalorimeterHitCollection&,
+    const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&
 
    )> {
@@ -57,6 +59,8 @@ struct PFHitML final:
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
+        const edm4hep::CalorimeterHitCollection&,
+        const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&)>(
         name, svcLoc,
           {
@@ -64,7 +68,9 @@ struct PFHitML final:
             KeyValues("EcalBarrelHits", {"ECALBarrel"}),
             KeyValues("HcalBarrelHits", {"HCALBarrel"}),
             KeyValues("EcalBarrelHits", {"ECALEndcap"}),
-            KeyValues("HcalBarrelHits", {"HCALEndcap"})
+            KeyValues("HcalBarrelHits", {"HCALEndcap"}),
+            KeyValues("HcalOtherHits", {"HCALOther"}),
+            KeyValues("MUON", {"MUON"})
           },
           {}  // no Outputs
         ) {}
@@ -75,7 +81,9 @@ struct PFHitML final:
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
-    const edm4hep::CalorimeterHitCollection& HcalEndcap_hits
+    const edm4hep::CalorimeterHitCollection& HcalEndcap_hits,
+    const edm4hep::CalorimeterHitCollection& HcalOther_hits,
+    const edm4hep::CalorimeterHitCollection& Muon_hits
   ) const override {
 
     info() << "MCParticles: " << mc_particles.size() << endmsg;
@@ -83,22 +91,34 @@ struct PFHitML final:
     info() << "HcalBarrelHits: " << HcalBarrel_hits.size() << endmsg;
     info() << "EcalEndcapHits: " << EcalEndcap_hits.size() << endmsg;
     info() << "HcalEndcapHits: " << HcalEndcap_hits.size() << endmsg;
+    info() << "HcalOtherHits: " << HcalOther_hits.size() << endmsg;
+    info() << "MuonHits: " << Muon_hits.size() << endmsg;
 
-    ObservableExtractor extractor(mc_particles, EcalBarrel_hits, HcalBarrel_hits, EcalEndcap_hits, HcalEndcap_hits);
+    ObservableExtractor extractor(
+      mc_particles, 
+      EcalBarrel_hits, 
+      HcalBarrel_hits, 
+      EcalEndcap_hits, 
+      HcalEndcap_hits, 
+      HcalOther_hits,
+      Muon_hits
+    );
     std::map<std::string, std::vector<float>> inputs = extractor.extract();
 
-    //for debugging
-    for (const auto& [key, valueVec] : inputs) {
-      std::cout << key << ": [";
-      for (size_t i = 0; i < valueVec.size(); ++i) {
-          std::cout << valueVec[i];
-          if (i < valueVec.size() - 1) {
-              std::cout << ", ";
-          }
-      }
-      std::cout << "]" << std::endl;
+
+    // Iterate through the map and print key and length of each value
+    for (const auto& pair : inputs) {
+        std::cout << "Key: " << pair.first
+                  << ", Length: " << pair.second.size() << std::endl;
+
+      for (size_t i=0; i<10; i++){
+                    std::cout << pair.second[i] << std::endl;
+        }
     }
-  
+
+    
+
+
 
     return {}; // no outputs
   }

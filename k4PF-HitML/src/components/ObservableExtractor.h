@@ -32,7 +32,9 @@
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
-    const edm4hep::CalorimeterHitCollection& HcalEndcap_hits);
+    const edm4hep::CalorimeterHitCollection& HcalEndcap_hits,
+    const edm4hep::CalorimeterHitCollection& HcalOther_hits,
+    const edm4hep::CalorimeterHitCollection& Muon_hits);
 
     std::map<std::string, std::vector<float>> extract() const;
 
@@ -42,6 +44,8 @@
     const edm4hep::CalorimeterHitCollection& hcalbarrel_;
     const edm4hep::CalorimeterHitCollection& ecalendcap_;
     const edm4hep::CalorimeterHitCollection& hcalendcap_;
+    const edm4hep::CalorimeterHitCollection& hcalother_;
+    const edm4hep::CalorimeterHitCollection& muons_;
 
     //was private, was public?
 
