@@ -28,7 +28,6 @@
 #include "edm4hep/ReconstructedParticleCollection.h"
 #include "edm4hep/CalorimeterHitCollection.h"
 
-
 //others
 #include "ObservableExtractor.h"
 
@@ -48,7 +47,8 @@ struct PFHitML final:
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
-    const edm4hep::CalorimeterHitCollection&
+    const edm4hep::CalorimeterHitCollection&,
+    const edm4hep::TrackCollection&
 
    )> {
 
@@ -61,16 +61,18 @@ struct PFHitML final:
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
-        const edm4hep::CalorimeterHitCollection&)>(
+        const edm4hep::CalorimeterHitCollection&,
+        const edm4hep::TrackCollection&)>(
         name, svcLoc,
           {
             KeyValues("MCParticles", {"MCParticles"}),
             KeyValues("EcalBarrelHits", {"ECALBarrel"}),
             KeyValues("HcalBarrelHits", {"HCALBarrel"}),
-            KeyValues("EcalBarrelHits", {"ECALEndcap"}),
-            KeyValues("HcalBarrelHits", {"HCALEndcap"}),
+            KeyValues("EcalEndcaplHits", {"ECALEndcap"}),
+            KeyValues("HcalEndcapHits", {"HCALEndcap"}),
             KeyValues("HcalOtherHits", {"HCALOther"}),
-            KeyValues("MUON", {"MUON"})
+            KeyValues("MUON", {"MUON"}),
+            KeyValues("Tracks", {"SiTracks_Refitted"})
           },
           {}  // no Outputs
         ) {}
@@ -83,7 +85,8 @@ struct PFHitML final:
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
     const edm4hep::CalorimeterHitCollection& HcalEndcap_hits,
     const edm4hep::CalorimeterHitCollection& HcalOther_hits,
-    const edm4hep::CalorimeterHitCollection& Muon_hits
+    const edm4hep::CalorimeterHitCollection& Muon_hits,
+    const edm4hep::TrackCollection& tracks
   ) const override {
 
     info() << "MCParticles: " << mc_particles.size() << endmsg;
@@ -93,6 +96,7 @@ struct PFHitML final:
     info() << "HcalEndcapHits: " << HcalEndcap_hits.size() << endmsg;
     info() << "HcalOtherHits: " << HcalOther_hits.size() << endmsg;
     info() << "MuonHits: " << Muon_hits.size() << endmsg;
+    info() << "tracks: " << tracks.size() << endmsg;
 
     ObservableExtractor extractor(
       mc_particles, 
@@ -101,7 +105,9 @@ struct PFHitML final:
       EcalEndcap_hits, 
       HcalEndcap_hits, 
       HcalOther_hits,
-      Muon_hits
+      Muon_hits,
+      tracks
+   //   calo_truthlinks
     );
     std::map<std::string, std::vector<float>> inputs = extractor.extract();
 

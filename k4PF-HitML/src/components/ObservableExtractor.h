@@ -25,6 +25,9 @@
 #include "edm4hep/ReconstructedParticleCollection.h"
 #include "edm4hep/CalorimeterHitCollection.h"
 #include "edm4hep/MCParticleCollection.h"
+
+
+
  
  class ObservableExtractor {
  public:
@@ -34,7 +37,9 @@
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
     const edm4hep::CalorimeterHitCollection& HcalEndcap_hits,
     const edm4hep::CalorimeterHitCollection& HcalOther_hits,
-    const edm4hep::CalorimeterHitCollection& Muon_hits);
+    const edm4hep::CalorimeterHitCollection& Muon_hits,
+    const edm4hep::TrackCollection& tracks);
+  
 
     std::map<std::string, std::vector<float>> extract() const;
 
@@ -46,6 +51,8 @@
     const edm4hep::CalorimeterHitCollection& hcalendcap_;
     const edm4hep::CalorimeterHitCollection& hcalother_;
     const edm4hep::CalorimeterHitCollection& muons_;
+    const edm4hep::TrackCollection& tracks_;
+   
 
     //was private, was public?
 
