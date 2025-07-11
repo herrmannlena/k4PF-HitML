@@ -30,6 +30,12 @@
 
 //others
 #include "ObservableExtractor.h"
+#include "ONNXHelper.h"  
+#include "Helpers.h"  
+#include "ROOT/RVec.hxx"
+#include <nlohmann/json.hpp> 
+
+namespace rv = ROOT::VecOps;
 
  /**
   include description
@@ -111,6 +117,8 @@ struct PFHitML final:
     );
     std::map<std::string, std::vector<float>> inputs = extractor.extract();
 
+    //still need to normalize etc
+
 
     // Iterate through the map and print key and length of each value
     for (const auto& pair : inputs) {
@@ -122,12 +130,39 @@ struct PFHitML final:
         }
     }
 
-    
-
 
 
     return {}; // no outputs
   }
+
+  StatusCode initialize() override {
+    info() << "Initializing PFHitML and loading model..." << endmsg;
+
+    json_config = loadJsonFile(json_path);
+    
+    onnx_ = std::make_unique<ONNXHelper>(model_path_clustering.value(), json_config);
+
+   
+    return StatusCode::SUCCESS;
+  }
+
+  private:
+  
+  nlohmann::json json_config;
+  std::unique_ptr<ONNXHelper> onnx_;
+  rv::RVec<std::string> vars;
+
+  Gaudi::Property<std::string> model_path_clustering{
+    this, "model_path_clustering", "/eos/user/l/lherrman/FCC/models/clustering_1.onnx",
+    "Path to the ONNX clustering model"};
+  
+  
+  Gaudi::Property<std::string> json_path{
+    this, "json_path",
+    "/afs/cern.ch/work/l/lherrman/private/inference/k4PFHitML/scripts/config_hits_track_v2_noise.json",
+    "Path to the JSON configuration file for the ONNX model"};
+  
+  
 };
 
 
