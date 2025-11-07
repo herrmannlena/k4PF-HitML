@@ -27,9 +27,9 @@
 #include <string>
 #include <vector>
  
-#include <onnxruntime_cxx_api.h>
+//#include <onnxruntime_cxx_api.h>
 
- 
+
 namespace Ort {
 class Env;     ///< Wrapper class for the ONNX Helper environment.
 class Session; ///< Wrapper class for ONNX Helper session handling.
@@ -97,7 +97,7 @@ private:
  
     std::unique_ptr<Ort::Env> env_;             ///< Pointer to the ONNX Helper environment object.
     std::unique_ptr<Ort::Session> session_;     ///< Pointer to the ONNX Helper session object.
-    Ort::AllocatorWithDefaultOptions allocator; ///< Allocator for ONNX Helper tensors.
+   // Ort::AllocatorWithDefaultOptions allocator; ///< Allocator for ONNX Helper tensors.
  
     std::vector<std::string> input_node_strings_;                  ///< List of input node names.
     std::vector<std::string> output_node_strings_;                 ///< List of output node names.
@@ -106,5 +106,5 @@ private:
     std::map<std::string, std::vector<int64_t>> output_node_dims_; ///< Dimensions of output nodes.
     
 };
- 
+
 #endif

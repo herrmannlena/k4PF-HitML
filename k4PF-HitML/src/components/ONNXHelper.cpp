@@ -20,14 +20,16 @@
 
 #include "ONNXHelper.h"
 
-#include <onnxruntime_cxx_api.h>
+//#include <onnxruntime_cxx_api.h>
  
 #include <fstream>
 #include <iostream>
  
 #include <algorithm>
 #include <numeric>
- 
+
+
+/*
 ONNXHelper::ONNXHelper(const std::string& model_path, const std::vector<std::string>& input_names)
      : env_(new Ort::Env(OrtLoggingLevel::ORT_LOGGING_LEVEL_WARNING, "onnx_Helper")), allocator(),
        input_names_(input_names) {
@@ -37,7 +39,7 @@ ONNXHelper::ONNXHelper(const std::string& model_path, const std::vector<std::str
     options.SetIntraOpNumThreads(1);
     std::string model{model_path}; // fixes a poor Ort experimental API
     session_ = std::make_unique<Ort::Session>(*env_, model.c_str(), options);
- 
+    
     // Get input names and shapes
     input_node_strings_.clear();
     input_node_dims_.clear();
@@ -145,4 +147,4 @@ ONNXHelper::Tensor<T> ONNXHelper::run(Tensor<T>& input, const Tensor<long>& inpu
  
 template ONNXHelper::Tensor<float> ONNXHelper::run(Tensor<float>&, const Tensor<long>&, unsigned long long) const;
 
-
+*/

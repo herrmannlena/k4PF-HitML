@@ -15,9 +15,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+
+ Description: 
+ converts rec files into the required format for MLPF inference. The standalone repository doing this job can be found here: https://github.com/doloresgarcia/MLPF_datageneration
  */
 
- #include "ObservableExtractor.h"
+#include "DataPreprocessing.h"
 
 //edm4hep imports
 #include "edm4hep/TrackerHit.h"
@@ -25,7 +28,7 @@
 #include "edm4hep/ReconstructedParticleCollection.h"
 #include "edm4hep/CalorimeterHitCollection.h"
 
-ObservableExtractor::ObservableExtractor(
+DataPreprocessing::DataPreprocessing(
     const edm4hep::MCParticleCollection& mc_particles,
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
@@ -39,7 +42,7 @@ ObservableExtractor::ObservableExtractor(
     muons_(Muon_hits), tracks_(tracks){}
   
 
-std::map<std::string, std::vector<float>> ObservableExtractor::extract() const {
+std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
     std::map<std::string, std::vector<float>> features;
 
     // collection of hits
@@ -124,7 +127,7 @@ std::map<std::string, std::vector<float>> ObservableExtractor::extract() const {
         
     }
     
-
+    //some kind of standardization?
   
     return features;
   }

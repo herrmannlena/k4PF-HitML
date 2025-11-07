@@ -29,8 +29,8 @@
 #include "edm4hep/CalorimeterHitCollection.h"
 
 //others
-#include "ObservableExtractor.h"
-#include "ONNXHelper.h"  
+#include "DataPreprocessing.h"
+//#include "ONNXHelper.h"  
 #include "Helpers.h"  
 #include "ROOT/RVec.hxx"
 #include <nlohmann/json.hpp> 
@@ -104,7 +104,7 @@ struct PFHitML final:
     info() << "MuonHits: " << Muon_hits.size() << endmsg;
     info() << "tracks: " << tracks.size() << endmsg;
 
-    ObservableExtractor extractor(
+    DataPreprocessing extractor(
       mc_particles, 
       EcalBarrel_hits, 
       HcalBarrel_hits, 
@@ -140,7 +140,7 @@ struct PFHitML final:
 
     json_config = loadJsonFile(json_path);
     
-    onnx_ = std::make_unique<ONNXHelper>(model_path_clustering.value(), json_config);
+    //onnx_ = std::make_unique<ONNXHelper>(model_path_clustering.value(), json_config);
 
    
     return StatusCode::SUCCESS;
@@ -149,11 +149,11 @@ struct PFHitML final:
   private:
   
   nlohmann::json json_config;
-  std::unique_ptr<ONNXHelper> onnx_;
+  //std::unique_ptr<ONNXHelper> onnx_;
   rv::RVec<std::string> vars;
 
   Gaudi::Property<std::string> model_path_clustering{
-    this, "model_path_clustering", "/eos/user/l/lherrman/FCC/models/clustering_1.onnx",
+    this, "model_path_clustering", "/eos/user/l/lherrman/FCC/models/clustering_truth_update.onnx",
     "Path to the ONNX clustering model"};
   
   

@@ -16,8 +16,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- #ifndef OBSERVABLEEXTRACTOR_H
- #define OBSERVABLEEXTRACTOR_H
+ #ifndef DATAPREPROCESSING_H
+ #define DATAPREPROCESSING_H
 
  //edm4hep imports
 #include "edm4hep/TrackerHit.h"
@@ -29,9 +29,9 @@
 
 
  
- class ObservableExtractor {
+class DataPreprocessing {
  public:
-    ObservableExtractor(const edm4hep::MCParticleCollection& mc_particles,
+    DataPreprocessing(const edm4hep::MCParticleCollection& mc_particles,
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
@@ -54,8 +54,6 @@
     const edm4hep::TrackCollection& tracks_;
    
 
-    //was private, was public?
-
   };
  
-  #endif // OBSERVABLEEXTRACTOR_H
+  #endif // DATAPREPROCESSING_H
