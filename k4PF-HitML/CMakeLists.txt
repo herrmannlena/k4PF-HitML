@@ -23,6 +23,7 @@ gaudi_add_module(k4ProjectTemplatePlugins
                  LINK Gaudi::GaudiKernel
                       k4FWCore::k4FWCore
                       EDM4HEP::edm4hep
+                      onnxruntime::onnxruntime
                       )
 
 install(TARGETS k4ProjectTemplatePlugins

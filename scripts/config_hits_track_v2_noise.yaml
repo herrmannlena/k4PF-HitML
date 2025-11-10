@@ -1,0 +1,153 @@
+# This one uses px, py, pz instead of theta, phi, to avoid possible errors
+
+graph_config:
+   only_hits: false
+   k: 40
+   prediction: true
+   noise: true
+custom_model_kwargs:
+   # add custom model kwargs here
+   n_postgn_dense_blocks: 4
+   clust_space_norm: none
+
+
+
+#treename:
+selection:
+   ### use `&`, `|`, `~` for logical operations on numpy arrays
+   ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
+   #(jet_tightId==1) & (jet_no<2) & (fj_pt>200) & (fj_pt<2500) & (((sample_isQCD==0) & (fj_isQCD==0)) | ((sample_isQCD==1) & (fj_isQCD==1))) & (event_no%7!=0)
+   #(recojet_e>=5)
+
+test_time_selection:
+   ### selection to apply at test time (i.e., when running w/ --predict)
+   #(jet_tightId==1) & (jet_no<2) & (fj_pt>200) & (fj_pt<2500) & (((sample_isQCD==0) & (fj_isQCD==0)) | ((sample_isQCD==1) & (fj_isQCD==1))) & (event_no%7==0)
+   #(recojet_e<5)
+
+new_variables:
+   ### [format] name: formula
+   ### can use functions from `math`, `np` (numpy), and `awkward` in the expression
+   #pfcand_mask: awkward.JaggedArray.ones_like(pfcand_etarel)
+   #sv_mask: awkward.JaggedArray.ones_like(sv_etarel)
+   #pfcand_mask: awkward.JaggedArray.ones_like(pfcand_e)
+   hit_mask: ak.ones_like(hit_e)
+   part_mask: ak.ones_like(part_p)
+   hit_e_nn: hit_e
+   hit_type_nn: hit_type
+   part_p1: part_p
+   part_theta1: part_theta
+   part_phi1: part_phi
+   part_m1: part_m
+   part_pid1: part_pid
+
+preprocess:
+  ### method: [manual, auto] - whether to use manually specified parameters for variable standardization
+  ### [note]: `[var]_mask` will not be transformed even if `method=auto`
+  method: auto
+  ### data_fraction: fraction of events to use when calculating the mean/scale for the standardization
+  data_fraction: 0.1
+
+inputs:
+   pf_points:
+      pad_mode: wrap
+      length: 25000
+      vars:
+         - [hit_x, null]
+         - [hit_y, null]
+         - [hit_z, null]
+         - [hit_px, null]
+         - [hit_py, null]
+         - [hit_pz, null]
+   pf_points_pfo:
+      pad_mode: wrap
+      length: 25000
+      vars:
+         - [hit__pandora_px, null]
+         - [hit__pandora_py, null]
+         - [hit__pandora_pz, null]
+         - [hit__pandora_x, null]
+         - [hit__pandora_y, null]
+         - [hit__pandora_z, null]
+   pf_features:
+      pad_mode: wrap
+      length: 25000
+      vars:
+      ### [format 1]: var_name (no transformation)
+      ### [format 2]: [var_name,
+      ###              subtract_by(optional, default=None, no transf. if preprocess.method=manual, auto transf. if preprocess.method=auto),
+      ###              multiply_by(optional, default=1),
+      ###              clip_min(optional, default=-5),
+      ###              clip_max(optional, default=5),
+      ###              pad_value(optional, default=0)]
+         # - [hit_theta, null]
+         # - [hit_phi, null]
+         - [hit_p, null]
+         - [hit_e, null]
+         - [part_theta , null]
+         - [part_phi , null]
+         - [part_p , null]
+         - [part_m, null]
+         - [part_pid, null]
+         - [part_isDecayedInCalorimeter, null]
+         - [part_isDecayedInTracker, null]
+         - [hit_pandora_cluster_energy, null]
+         - [hit_pandora_pfo_energy, null]
+         - [hit_chis, null]
+         - [part_px , null]
+         - [part_py , null]
+         - [part_pz , null]
+         - [part_vertex_x, null]
+         - [part_vertex_y, null]
+         - [part_vertex_z, null]
+
+
+   pf_vectors:
+      length: 25000
+      pad_mode: wrap
+      vars:
+         - [hit_type_nn, null] #0
+         - [hit_e_nn, null] #1
+         # #labels
+         # - [part_p1, null]  #2
+         # - [part_theta1, null] #3
+         # - [part_phi1, null] #4
+         # - [part_m1, null]  #15
+         # - [part_pid1, null]  #6
+   pf_vectoronly:
+      length: 25000
+      pad_mode: wrap
+      vars:
+      - [hit_genlink0, null] # hit link to MC
+      - [hit_genlink1, null] # pandora_cluster if val data otherwise 0
+      - [hit_genlink2, null] # pandora_index_pfo if val data otherwise 0
+      - [hit_genlink3, null] # hit link to daugther
+      - [hit_genlink4, null] #2
+
+
+   pf_mask:
+      length: 25000
+      pad_mode: constant
+      vars:
+         - [hit_mask, null]
+         - [part_mask, null]
+
+
+labels:
+   ### type can be `simple`, `custom`
+  ### [option 1] use `simple` for binary/multi-class classification, then `value` is a list of 0-1 labels
+   #type: simple
+   #value: [
+   #   hit_ty
+   #   ]
+   ### [option 2] otherwise use `custom` to define the label, then `value` is a map
+   # type: custom
+   # value:
+      # target_mass: np.where(fj_isQCD, fj_genjet_sdmass, fj_gen_mass)
+
+observers:
+   #- recojet_e
+   #- recojet_theta
+   #- recojet_phi
+   #- recojet_m
+   #- n_pfcand
+

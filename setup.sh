@@ -16,7 +16,7 @@
 ## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
-i##
+
 
 
 # Script to setup key4hep nightly environment that allows to use ONNX
@@ -28,6 +28,11 @@ source /cvmfs/sw-nightlies.hsf.org/key4hep/setup.sh
 
 ONNXRUNTIME_PATH=$(dirname $(python -c 'import onnxruntime; print(f"{onnxruntime.__file__}")'))
 export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:${ONNXRUNTIME_PATH}/../../../..
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(realpath ${ONNXRUNTIME_PATH}/../../../../)/lib    # Ubuntu
+#export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(realpath ${ONNXRUNTIME_PATH}/../../../../)/lib    # Ubuntu
+export LD_LIBRARY_PATH=$PWD/install/lib:$LD_LIBRARY_PATH
+export PYTHONPATH=$PWD/install/python:$PYTHONPATH
+#echo $ONNXRUNTIME_PATH
+#echo $CMAKE_PREFIX_PATH
+#echo $LD_LIBRARY_PATH
 
 
