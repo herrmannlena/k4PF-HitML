@@ -28,8 +28,10 @@
 #include "edm4hep/ReconstructedParticleCollection.h"
 #include "edm4hep/CalorimeterHitCollection.h"
 
+#include <torch/torch.h>
+#include "ONNXHelper.h"  
+
 DataPreprocessing::DataPreprocessing(
-    const edm4hep::MCParticleCollection& mc_particles,
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
@@ -37,7 +39,7 @@ DataPreprocessing::DataPreprocessing(
     const edm4hep::CalorimeterHitCollection& HcalOther_hits,
     const edm4hep::CalorimeterHitCollection& Muon_hits,
     const edm4hep::TrackCollection& tracks)
-    : mc_(mc_particles), ecalbarrel_(EcalBarrel_hits), hcalbarrel_(HcalBarrel_hits),
+    : ecalbarrel_(EcalBarrel_hits), hcalbarrel_(HcalBarrel_hits),
     ecalendcap_(EcalEndcap_hits), hcalendcap_(HcalEndcap_hits), hcalother_(HcalOther_hits), 
     muons_(Muon_hits), tracks_(tracks){}
   
@@ -129,5 +131,102 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
   }
 
 
+  //this is not the correct type for ONNX helper.. try alternative
+  torch::Tensor DataPreprocessing::convertModelInputs(std::map<std::string, std::vector<float>> features) const {
+
+    // prepare hit type
+    torch::Tensor hit_type   = torch::from_blob(
+        const_cast<float*>(features.at("hit_type_feature_hit").data()),          // pointer to data
+        {static_cast<long>(features.at("hit_type_feature_hit").size())},         // shape
+        torch::kFloat32                                                         // dtype
+    ).clone(); 
+    
+    torch::Tensor track_type = torch::from_blob(
+        const_cast<float*>(features.at("hit_type_feature_track").data()),
+        {static_cast<long>(features.at("hit_type_feature_track").size())},
+        torch::kFloat32
+    ).clone();
+    
+    //concatenate hit type features
+    torch::Tensor hit_type_feature = torch::cat({hit_type, track_type}, 0); 
+    //hit_type_feature = hit_type_feature.unsqueeze(1);
+
+    //one hot
+    torch::Tensor hit_type_one_hot = torch::one_hot(
+        hit_type_feature.to(torch::kInt64), // input tensor of integer class indices
+        /* num_classes = */ 5
+    ).to(torch::kFloat32); 
+    
+
+    // prepare position 
+    const auto& pos_hits_flat = features.at("pos_hits_xyz_hits");  
+    std::size_t N = pos_hits_flat.size() / 3;
+
+    torch::Tensor pos_hits = torch::tensor(pos_hits_flat, torch::kFloat32).reshape({static_cast<long>(N), 3});
+
+    const auto& pos_tracks_flat = features.at("pos_hits_xyz_tracks");  
+    std::size_t N_tracks = pos_tracks_flat.size() / 3;
+                           
+    torch::Tensor pos_tracks = torch::tensor(pos_tracks_flat, torch::kFloat32).reshape({static_cast<long>(N_tracks), 3});
+  
+    //concatenate pos features
+    torch::Tensor pos_feature = torch::cat({pos_hits, pos_tracks}, 0); 
+
+    //prepare e 
+    torch::Tensor hit_e   = torch::from_blob(
+        const_cast<float*>(features.at("e_hits").data()),          
+        {static_cast<long>(features.at("e_hits").size())},         
+        torch::kFloat32                                                        
+    ).clone(); 
+    
+    torch::Tensor track_e = torch::from_blob(
+        const_cast<float*>(features.at("e_tracks").data()),
+        {static_cast<long>(features.at("e_tracks").size())},
+        torch::kFloat32
+    ).clone();
+    
+    //concatenate 
+    torch::Tensor e_feature = torch::cat({hit_e, track_e}, 0); 
+    e_feature = e_feature.unsqueeze(1);
+
+    //prepare p
+    torch::Tensor hit_p   = torch::from_blob(
+        const_cast<float*>(features.at("p_hits").data()),          
+        {static_cast<long>(features.at("p_hits").size())},         
+        torch::kFloat32                                                        
+    ).clone(); 
+    
+    torch::Tensor track_p = torch::from_blob(
+        const_cast<float*>(features.at("p_tracks").data()),
+        {static_cast<long>(features.at("p_tracks").size())},
+        torch::kFloat32
+    ).clone();
+    
+    //concatenate 
+    torch::Tensor p_feature = torch::cat({hit_p, track_p}, 0); 
+    p_feature = p_feature.unsqueeze(1);
+ 
+
+    //std::cout << "pos_feature" << pos_feature.sizes()<< std::endl;
+    //std::cout << "type_feature" << hit_type_feature.sizes()<< std::endl;
+    //std::cout << "p_feature" << p_feature.sizes()<< std::endl;
+    //std::cout << "e_feature" << e_feature.sizes()<< std::endl;
+    //std::cout << "onehot" << hit_type_one_hot.sizes() << std::endl;
+
+    //final onnx input
+    torch::Tensor h = torch::cat({pos_feature, hit_type_one_hot, e_feature, p_feature}, 1).to(torch::kFloat32);
+
+
+    //m_inputShapes = { std::vector<long>(h.sizes().begin(), h.sizes().end()) };
+     
+    //std::cout << "m_inputShapes" << m_inputShapes[0][0] << std::endl;
+    //std::cout << "m_inputShapes" << m_inputShapes[0][1] << std::endl;
+  
+    return h;
+
+  }
+
+
   // mache eine funktion, die vorbereitet fuer model Format
 //sind die track states correct?
+//hit type correct?

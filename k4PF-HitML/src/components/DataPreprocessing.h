@@ -26,12 +26,15 @@
 #include "edm4hep/CalorimeterHitCollection.h"
 #include "edm4hep/MCParticleCollection.h"
 
+#include <torch/torch.h>
+#include "ONNXHelper.h"  
+
 
 
  
 class DataPreprocessing {
  public:
-    DataPreprocessing(const edm4hep::MCParticleCollection& mc_particles,
+    DataPreprocessing(
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
@@ -43,8 +46,12 @@ class DataPreprocessing {
 
     std::map<std::string, std::vector<float>> extract() const;
 
+    torch::Tensor convertModelInputs(std::map<std::string, std::vector<float>> features) const;
+   // ONNXHelper::Tensor<long> m_inputShapes;  
+
+
+   
  private:
-    const edm4hep::MCParticleCollection& mc_;
     const edm4hep::CalorimeterHitCollection& ecalbarrel_;
     const edm4hep::CalorimeterHitCollection& hcalbarrel_;
     const edm4hep::CalorimeterHitCollection& ecalendcap_;
