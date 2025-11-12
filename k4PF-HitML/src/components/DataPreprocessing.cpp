@@ -60,53 +60,53 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
         for (const auto& hit : *hit_collection){
 
             auto pos = hit.getPosition();
-            auto t = hit.getTime();
             auto energy = hit.getEnergy();
             
             float x = pos.x;
             float y = pos.y;
             float z = pos.z;
-            //float r = std::sqrt(x*x+y*y+z*z);
-            //float theta = std::acos(z/r);
-            //float phi = std::atan2(y, x);
-
-            int htype = 2;  // Default to 2 (ECAL)
-            if (name.find("HCAL") != std::string::npos) {
+            
+            int htype;
+            if (name.find("ECAL") != std::string::npos) {
+                htype = 2;
+            } 
+            else if (name.find("HCAL") != std::string::npos) {
                 htype = 3;
             } else if (name.find("MUON") != std::string::npos) {
                 htype = 4;
             }
+            else{
+                htype = 5; 
+            }
 
-            features["hit_x"].push_back(x);
-            features["hit_y"].push_back(y);
-            features["hit_z"].push_back(z);
-            features["hit_t"].push_back(t);
-            features["hit_e"].push_back(energy);
-            //features["hit_theta"].push_back(theta);
-            //features["hit_phi"].push_back(phi);
-            features["hit_htype"].push_back(htype);
+
+            features["pos_hits_xyz_hits"].push_back(x);
+            features["pos_hits_xyz_hits"].push_back(y);
+            features["pos_hits_xyz_hits"].push_back(z);
+            features["e_hits"].push_back(energy);
+            features["p_hits"].push_back(0);
+            features["hit_type_feature_hit"].push_back(htype);
             
         }
     }
 
     //extract track information
     for (const auto& track : tracks_) {
+        
+        //trackstate at IP?
+        auto trackstate = track.getTrackStates()[1];
+        float omega = trackstate.omega;
+        float phi = trackstate.phi;
+        float tanLambda = trackstate.tanLambda;
 
-        auto trackstate = track.getTrackStates()[0];
-        auto referencePoint = trackstate.referencePoint;
-        float x = referencePoint.x;
-        float y = referencePoint.y;
-        float z = referencePoint.z;
-
-        int htype_v = 0; //vertex track state
-    
-        features["hit_x"].push_back(x);
-        features["hit_y"].push_back(y);
-        features["hit_z"].push_back(z);
-        features["hit_t"].push_back(trackstate.time);
-        features["hit_e"].push_back(-1);  //why dummy?
-        features["hit_htype"].push_back(htype_v);
-
+        float pt = 2.99792e-4 * std::abs(2.0/omega);  // B filed 2T
+        float px = std::cos(phi) * pt;
+        float py = std::sin(phi) * pt;
+        float pz = tanLambda  * pt;
+        float p = std::sqrt(px * px + py * py + pz * pz);
+   
+        features["p_tracks"].push_back(p);
+        features["e_tracks"].push_back(0);  
 
         //also add features for trackstate at calo
         auto trackstate_calo = track.getTrackStates()[3];
@@ -118,16 +118,16 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
 
         int htype_c = 1; //vertex track state
     
-        features["hit_x"].push_back(x_c);
-        features["hit_y"].push_back(y_c);
-        features["hit_z"].push_back(z_c);
-        features["hit_t"].push_back(trackstate_calo.time);
-        features["hit_e"].push_back(-1);  //why dummy?
-        features["hit_htype"].push_back(htype_c);
+        features["pos_hits_xyz_tracks"].push_back(x_c);
+        features["pos_hits_xyz_tracks"].push_back(y_c);
+        features["pos_hits_xyz_tracks"].push_back(z_c);
+        features["hit_type_feature_track"].push_back(htype_c);
         
     }
-    
-    //some kind of standardization?
-  
+      
     return features;
   }
+
+
+  // mache eine funktion, die vorbereitet fuer model Format
+//sind die track states correct?
