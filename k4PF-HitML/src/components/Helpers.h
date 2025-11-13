@@ -16,6 +16,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+ /*get input variables from json*/
+
  #ifndef HELPERS_H
  #define HELPERS_H
  
@@ -35,7 +38,7 @@
   * @param json_path: the path to the JSON file
   * @return: the JSON object
   */
- nlohmann::json loadJsonFile(const std::string& json_path);
+  std::vector<std::string> extract_input_names(const std::string& json_path);
  
 
  

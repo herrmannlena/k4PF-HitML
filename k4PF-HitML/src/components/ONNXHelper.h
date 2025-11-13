@@ -90,6 +90,8 @@
    template <typename T>
    Tensor<T> run(Tensor<T>& input_tensor, const Tensor<long>& input_shape = {},
                  unsigned long long batch_size = 1ull) const;
+
+  static Ort::MemoryInfo CpuMemInfo();
  
  private:
    /**
@@ -99,10 +101,12 @@
     * @return The position of the variable in the input names list.
     */
    size_t variablePos(const std::string& var_name) const;
+   
  
    std::unique_ptr<Ort::Env> m_env;              ///< Pointer to the ONNX Runtime environment object.
    std::unique_ptr<Ort::Session> m_session;      ///< Pointer to the ONNX Runtime session object.
    Ort::AllocatorWithDefaultOptions m_allocator; ///< Allocator for ONNX Runtime tensors.
+   Ort::MemoryInfo m_cpu_mem_info;
  
    std::vector<std::string> m_inputNodeStrings;                  ///< List of input node names.
    std::vector<std::string> m_outputNodeStrings;                 ///< List of output node names.

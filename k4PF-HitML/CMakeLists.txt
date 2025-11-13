@@ -24,6 +24,7 @@ gaudi_add_module(k4ProjectTemplatePlugins
                       k4FWCore::k4FWCore
                       EDM4HEP::edm4hep
                       onnxruntime::onnxruntime
+                      torch
                       )
 
 install(TARGETS k4ProjectTemplatePlugins

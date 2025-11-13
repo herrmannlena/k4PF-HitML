@@ -22,12 +22,14 @@
  
  #include <algorithm>
  #include <numeric>
+ #include <iostream>
+
 
  //taken from https://github.com/key4hep/k4MLJetTagger/blob/main/k4MLJetTagger/src/components/ONNXRuntime.h
  
  ONNXHelper::ONNXHelper(const std::string& model_path, const std::vector<std::string>& input_names)
      : m_env(new Ort::Env(OrtLoggingLevel::ORT_LOGGING_LEVEL_WARNING, "onnx_runtime")), m_allocator(),
-       m_inputNames(input_names) {
+       m_inputNames(input_names), m_cpu_mem_info(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault)) {
    if (model_path.empty())
      throw std::runtime_error("Path to ONNX model cannot be empty!");
    Ort::SessionOptions options;
@@ -74,6 +76,7 @@
                                          unsigned long long batch_size) const {
    std::vector<Ort::Value> tensors_in;
    for (const auto& name : m_inputNodeStrings) {
+     std::cout<<"the names"<< name <<std::endl;
      auto input_pos = variablePos(name);
      auto value = input.begin() + input_pos;
      std::vector<int64_t> input_dims;
@@ -93,10 +96,10 @@
        throw std::runtime_error("Input array '" + name + "' has a wrong size of " + std::to_string(value->size()) +
                                 ", expected " + std::to_string(expected_len));
  
-     const OrtMemoryInfo* fInfo;
-     fInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+     //const OrtMemoryInfo* fInfo;
+     //fInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
      auto input_tensor =
-         Ort::Value::CreateTensor<float>(fInfo, value->data(), value->size(), input_dims.data(), input_dims.size());
+         Ort::Value::CreateTensor<float>(m_cpu_mem_info, value->data(), value->size(), input_dims.data(), input_dims.size());
      if (!input_tensor.IsTensor())
        throw std::runtime_error("Failed to create an input tensor for variable '" + name + "'.");
      tensors_in.emplace_back(std::move(input_tensor));
@@ -143,5 +146,11 @@
      throw std::runtime_error("Input variable '" + name + " is not provided");
    return iter - m_inputNames.begin();
  }
+
+ static Ort::MemoryInfo CpuMemInfo() {
+  return Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault); 
+}
+
+
  
  template ONNXHelper::Tensor<float> ONNXHelper::run(Tensor<float>&, const Tensor<long>&, unsigned long long) const;

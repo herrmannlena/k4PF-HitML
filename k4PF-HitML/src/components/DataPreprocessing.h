@@ -46,7 +46,7 @@ class DataPreprocessing {
 
     std::map<std::string, std::vector<float>> extract() const;
 
-    torch::Tensor convertModelInputs(std::map<std::string, std::vector<float>> features) const;
+    std::tuple<ONNXHelper::Tensor<float>,ONNXHelper::Tensor<long>,unsigned long long> convertModelInputs(std::map<std::string, std::vector<float>> features) const;
    // ONNXHelper::Tensor<long> m_inputShapes;  
 
 

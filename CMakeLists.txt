@@ -37,6 +37,7 @@ find_package(Gaudi)
 # make sure the onnx find script is found:
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(onnxruntime REQUIRED)
+find_package(Torch REQUIRED)
 if(onnxruntime_FOUND)
   message("ONNX Runtime inference library found.")
 else()

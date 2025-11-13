@@ -132,7 +132,8 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
 
 
   //this is not the correct type for ONNX helper.. try alternative
-  torch::Tensor DataPreprocessing::convertModelInputs(std::map<std::string, std::vector<float>> features) const {
+  std::tuple<ONNXHelper::Tensor<float>,ONNXHelper::Tensor<long>,unsigned long long>
+ DataPreprocessing::convertModelInputs(std::map<std::string, std::vector<float>> features) const {
 
     // prepare hit type
     torch::Tensor hit_type   = torch::from_blob(
@@ -149,13 +150,13 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
     
     //concatenate hit type features
     torch::Tensor hit_type_feature = torch::cat({hit_type, track_type}, 0); 
-    //hit_type_feature = hit_type_feature.unsqueeze(1);
+    hit_type_feature = hit_type_feature.unsqueeze(1);
 
     //one hot
-    torch::Tensor hit_type_one_hot = torch::one_hot(
-        hit_type_feature.to(torch::kInt64), // input tensor of integer class indices
-        /* num_classes = */ 5
-    ).to(torch::kFloat32); 
+    //torch::Tensor hit_type_one_hot = torch::one_hot(
+    //    hit_type_feature.to(torch::kInt64), // input tensor of integer class indices
+    //    /* num_classes = */ 5
+    //).to(torch::kFloat32); 
     
 
     // prepare position 
@@ -214,7 +215,20 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
     //std::cout << "onehot" << hit_type_one_hot.sizes() << std::endl;
 
     //final onnx input
-    torch::Tensor h = torch::cat({pos_feature, hit_type_one_hot, e_feature, p_feature}, 1).to(torch::kFloat32);
+    torch::Tensor h = torch::cat({pos_feature, hit_type_feature, e_feature, p_feature}, 1).to(torch::kFloat32);
+
+    //convert for ONNXHelper
+    size_t numel = static_cast<size_t>(h.numel());
+    std::vector<float> flat(numel);
+    std::memcpy(flat.data(), h.data_ptr<float>(), numel * sizeof(float));
+    ONNXHelper::Tensor<float> input_tensor;
+    input_tensor.emplace_back(std::move(flat));
+
+
+    ONNXHelper::Tensor<long> input_shapes;
+    input_shapes.emplace_back();
+    input_shapes.back().push_back(h.size(0));
+    input_shapes.back().push_back(h.size(1));
 
 
     //m_inputShapes = { std::vector<long>(h.sizes().begin(), h.sizes().end()) };
@@ -222,11 +236,11 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
     //std::cout << "m_inputShapes" << m_inputShapes[0][0] << std::endl;
     //std::cout << "m_inputShapes" << m_inputShapes[0][1] << std::endl;
   
-    return h;
+    return {input_tensor, input_shapes, h.size(0)};
 
   }
 
 
   // mache eine funktion, die vorbereitet fuer model Format
 //sind die track states correct?
-//hit type correct?
+//hit type correct?, shouldn't it be N,1?

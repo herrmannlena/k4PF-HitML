@@ -30,10 +30,15 @@
 
 //others
 #include "DataPreprocessing.h"
-//#include "ONNXHelper.h"  
+#include "ONNXHelper.h"  
 #include "Helpers.h"  
 #include "ROOT/RVec.hxx"
 #include <nlohmann/json.hpp> 
+
+//ONNX
+#include "onnxruntime_cxx_api.h"
+#include <torch/torch.h>
+#include "ONNXHelper.h" 
 
 namespace rv = ROOT::VecOps;
 
@@ -47,7 +52,6 @@ struct PFHitML final:
    k4FWCore::MultiTransformer<
    std::tuple<>(
 
-    const edm4hep::MCParticleCollection&,
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
@@ -56,12 +60,11 @@ struct PFHitML final:
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::TrackCollection&
 
-   )> {
+   ) > {
 
     PFHitML(const std::string& name, ISvcLocator* svcLoc)
       : k4FWCore::MultiTransformer<
       std::tuple<>(
-        const edm4hep::MCParticleCollection&,
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
@@ -71,7 +74,6 @@ struct PFHitML final:
         const edm4hep::TrackCollection&)>(
         name, svcLoc,
           {
-            KeyValues("MCParticles", {"MCParticles"}),
             KeyValues("EcalBarrelHits", {"ECALBarrel"}),
             KeyValues("HcalBarrelHits", {"HCALBarrel"}),
             KeyValues("EcalEndcaplHits", {"ECALEndcap"}),
@@ -85,7 +87,6 @@ struct PFHitML final:
 
   // main
   std::tuple<> operator()(
-    const edm4hep::MCParticleCollection& mc_particles,
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
@@ -95,7 +96,6 @@ struct PFHitML final:
     const edm4hep::TrackCollection& tracks
   ) const override {
 
-    info() << "MCParticles: " << mc_particles.size() << endmsg;
     info() << "EcalBarrelHits: " << EcalBarrel_hits.size() << endmsg;
     info() << "HcalBarrelHits: " << HcalBarrel_hits.size() << endmsg;
     info() << "EcalEndcapHits: " << EcalEndcap_hits.size() << endmsg;
@@ -105,7 +105,6 @@ struct PFHitML final:
     info() << "tracks: " << tracks.size() << endmsg;
 
     DataPreprocessing extractor(
-      mc_particles, 
       EcalBarrel_hits, 
       HcalBarrel_hits, 
       EcalEndcap_hits, 
@@ -113,22 +112,34 @@ struct PFHitML final:
       HcalOther_hits,
       Muon_hits,
       tracks
-   //   calo_truthlinks
     );
+    
+    //get input variables
     std::map<std::string, std::vector<float>> inputs = extractor.extract();
+    //convert inputs to expected shape 
+    auto [inputs_onnx, input_shapes, batch_size] = extractor.convertModelInputs(inputs);
 
-    //still need to normalize etc
+
+    ///////////////////////////////////////////////////
+    ////////// Inference Pattern Recognition //////////
+    ///////////////////////////////////////////////////
+
+    
+    auto outputs = m_onnx->run(inputs_onnx, input_shapes, batch_size);
+
+    std::cout << "output printout: "  << outputs.size()<<"\n";
+    std::cout << "output 0: "  << outputs[0][0] << outputs[0][1] <<"\n";
+    
+    
+
+  
 
 
-    // Iterate through the map and print key and length of each value
-    for (const auto& pair : inputs) {
-        std::cout << "Key: " << pair.first
-                  << ", Length: " << pair.second.size() << std::endl;
 
-      for (size_t i=0; i<10; i++){
-                    std::cout << pair.second[i] << std::endl;
-        }
-    }
+    /////////////////////////////////////
+    ////////// CLUSTERING STEP //////////
+    /////////////////////////////////////
+
 
 
 
@@ -137,19 +148,32 @@ struct PFHitML final:
 
   StatusCode initialize() override {
     info() << "Initializing PFHitML and loading model..." << endmsg;
-
-    json_config = loadJsonFile(json_path);
     
-    //onnx_ = std::make_unique<ONNXHelper>(model_path_clustering.value(), json_config);
+    //fix this.. not needed?
+    input_names = extract_input_names(json_path);
+    
+    //Create the onnx 
+    //fix input names, provide only orderd inputs..
+    m_onnx = std::make_unique<ONNXHelper>(model_path_clustering.value(), names);
+
+
+    
 
    
     return StatusCode::SUCCESS;
   }
 
+
+
+
   private:
   
-  nlohmann::json json_config;
-  //std::unique_ptr<ONNXHelper> onnx_;
+  std::vector<std::string> input_names;
+  //std::vector<std::string> names = {"X_hit", "X_track"};
+  //names that are saved in the model
+  std::vector<std::string> names = {"inputs"};
+
+  std::unique_ptr<ONNXHelper> m_onnx;
   rv::RVec<std::string> vars;
 
   Gaudi::Property<std::string> model_path_clustering{
@@ -161,8 +185,10 @@ struct PFHitML final:
     this, "json_path",
     "/afs/cern.ch/work/l/lherrman/private/inference/k4PFHitML/scripts/config_hits_track_v2_noise.json",
     "Path to the JSON configuration file for the ONNX model"};
-  
-  
+
+
+
+
 };
 
 
