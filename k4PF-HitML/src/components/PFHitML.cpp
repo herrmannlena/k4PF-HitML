@@ -30,7 +30,7 @@
 
 //others
 #include "DataPreprocessing.h"
-#include "ONNXHelper.h"  
+#include "Clustering.h"  
 #include "Helpers.h"  
 #include "ROOT/RVec.hxx"
 #include <nlohmann/json.hpp> 
@@ -125,22 +125,30 @@ struct PFHitML final:
     ///////////////////////////////////////////////////
 
     
-    auto outputs = m_onnx->run(inputs_onnx, input_shapes, batch_size);
+    std::vector<std::vector<float>>  outputs = m_onnx->run(inputs_onnx, input_shapes, batch_size);
 
-    std::cout << "output printout: "  << outputs.size()<<"\n";
-    std::cout << "output 0: "  << outputs[0][0] << outputs[0][1] <<"\n";
+
+    //get two outputs, first one has shape (N,4) (three coordinates in embedding space + beta)
+    // second output is  dummy for pred_energy_corr (not needed at this stage)
     
-    
-
-  
-
 
 
     /////////////////////////////////////
     ////////// CLUSTERING STEP //////////
     /////////////////////////////////////
 
+    // expect output tensor of length N with cluster labels
+    Clustering clusterer(0.5, 0.2);
+    torch::Tensor cluster_label = clusterer.get_clustering(outputs[0]);
 
+    std::cout << "cluster output" << cluster_label.sizes() <<std::endl;
+
+    torch::Tensor uniqueTensor;
+    torch::Tensor inverseIndices;
+    std::tie(uniqueTensor, inverseIndices) = at::_unique(cluster_label, true, true);
+
+    
+    
 
 
     return {}; // no outputs
@@ -193,3 +201,5 @@ struct PFHitML final:
 
 
 DECLARE_COMPONENT(PFHitML)
+
+//cleanup? get rid of helper? check if this with input name in onnx part works ous

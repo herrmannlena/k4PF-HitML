@@ -127,8 +127,9 @@
        throw std::runtime_error("(at least) inference output " + std::to_string(i) + " is not a tensor.");
      // get output shape
      auto tensor_info = output_tensor.GetTensorTypeAndShapeInfo();
+     auto shape = tensor_info.GetShape();
      auto length = tensor_info.GetElementCount();
- 
+
      auto floatarr = output_tensor.GetTensorData<float>();
      outputs.emplace_back(floatarr, floatarr + length);
      ++i;
