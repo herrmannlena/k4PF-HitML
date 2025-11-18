@@ -44,10 +44,11 @@ class DataPreprocessing {
     const edm4hep::TrackCollection& tracks);
   
 
-    std::map<std::string, std::vector<float>> extract() const;
+    std::map<std::string, std::vector<float>>extract() const;
 
     std::tuple<ONNXHelper::Tensor<float>,ONNXHelper::Tensor<long>,unsigned long long> convertModelInputs(std::map<std::string, std::vector<float>> features) const;
-   // ONNXHelper::Tensor<long> m_inputShapes;  
+    std::vector<float> prepare_prop(std::map<std::string, std::vector<float>> features) const;
+    // ONNXHelper::Tensor<long> m_inputShapes;  
 
 
    

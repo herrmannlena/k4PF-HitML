@@ -43,7 +43,7 @@
 namespace rv = ROOT::VecOps;
 
  /**
-  include description
+  output: collection
   */
 
 
@@ -115,23 +115,22 @@ struct PFHitML final:
     );
     
     //get input variables
-    std::map<std::string, std::vector<float>> inputs = extractor.extract();
+    auto inputs = extractor.extract();
     //convert inputs to expected shape 
     auto [inputs_onnx, input_shapes, batch_size] = extractor.convertModelInputs(inputs);
 
 
     ///////////////////////////////////////////////////
-    ////////// Inference Pattern Recognition //////////
+    ////////// Inference Clustering Model //////////
     ///////////////////////////////////////////////////
 
     
     std::vector<std::vector<float>>  outputs = m_onnx->run(inputs_onnx, input_shapes, batch_size);
 
-
+    //std::cout << "output" << outputs[0][0] <<"" << outputs[0][1]  <<std::endl;
     //get two outputs, first one has shape (N,4) (three coordinates in embedding space + beta)
     // second output is  dummy for pred_energy_corr (not needed at this stage)
     
-
 
     /////////////////////////////////////
     ////////// CLUSTERING STEP //////////
@@ -146,6 +145,17 @@ struct PFHitML final:
     torch::Tensor uniqueTensor;
     torch::Tensor inverseIndices;
     std::tie(uniqueTensor, inverseIndices) = at::_unique(cluster_label, true, true);
+
+    //final output collection
+    auto MLPF = edm4hep::ReconstructedParticleCollection();
+
+    ////////////////////////////////////
+    //// ENERGY REGRESSION & PID ///////
+    ////////////////////////////////////
+    
+    //look here: https://github.com/selvaggi/mlpf/blob/main/src/utils/post_clustering_features.py
+    auto prop_inputs = extractor.prepare_prop(inputs); //determine and convert inputs for regression model
+    
 
     
     
@@ -202,4 +212,4 @@ struct PFHitML final:
 
 DECLARE_COMPONENT(PFHitML)
 
-//cleanup? get rid of helper? check if this with input name in onnx part works ous
+//cleanup? get rid of helper json thing? check if this with input name in onnx part works ous

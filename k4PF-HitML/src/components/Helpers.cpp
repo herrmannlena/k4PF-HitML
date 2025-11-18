@@ -53,6 +53,59 @@
  }
 
 
+ //determine energy of subsystem
+ float energy_sys(int hit_type, std::map<std::string, std::vector<float>> features, bool squared){
+  float e_cal = 0;
+  float e_cal_sq = 0;
+  
+   if (features.at("e_hits").size() != features.at("hit_type_feature_hit").size()) {
+      throw std::runtime_error("e_hits and hit_types size mismatch");
+   }
+
+  for (size_t i = 0; i < features.at("hit_type_feature_hit").size(); ++i) {
+   
+    if (features.at("hit_type_feature_hit")[i] == hit_type) {
+        e_cal += features.at("e_hits")[i];   
+        e_cal_sq += std::pow(features.at("e_hits")[i],2);
+    }
+  }
+
+  if (squared){
+    return e_cal_sq;
+  }
+  else{
+    return e_cal ;
+  }
+  
+
+ }
+
+
+ float mean(std::map<std::string, std::vector<float>> features, std::string variable){
+  
+  float temp = 0; 
+  float num_var = features.at(variable).size();
+
+  for (size_t i = 0; i < features.at(variable).size(); ++i) {
+    temp += features.at(variable)[i];   
+  }
+
+  if (num_var == 0) return 0.0f;
+  return temp / num_var;
+
+ }
+
+
+  // var = E(x^2) - E(x)^2
+ float disperion(int hit_type, std::map<std::string, std::vector<float>> features, float n_sys_hits){
+
+    float energy_sum = energy_sys(hit_type, features, false);
+    float energy_sum_sq = energy_sys(hit_type, features, true);
+
+    float dispersion = energy_sum_sq / n_sys_hits - std::pow((energy_sum/ n_sys_hits),2);
+    
+    return dispersion;
+ }
 
 
     

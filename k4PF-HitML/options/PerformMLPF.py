@@ -26,10 +26,11 @@ from k4FWCore.parseArgs import parser
 parser_group = parser.add_argument_group("PerformMLPF.py custom options")
 parser_group.add_argument("--inputFiles", nargs="+", metavar=("file1", "file2"), help="One or multiple input files",
                           default=["/eos/user/l/lherrman/FCC/datageneration/condor/10/out_reco_edm4hep_REC.edm4hep.root"])
+                          #this is Dolores model Hss, adapt the default input file
                        # default=["/afs/cern.ch/work/l/lherrman/private/inference/data/Hss_rec_16809_40.root"])
 #parser_group.add_argument("--outputFile", help="Output file name", default="output_MLPF.root")
 parser_group.add_argument("--num_ev", type=int, help="Number of events to process (-1 means all)", default=-1)
-parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model used for clustering", default="/eos/user/l/lherrman/FCC/models/clustering_truth_update.onnx")
+parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model used for clustering", default="/eos/user/l/lherrman/FCC/models/clustering_model_Hss.onnx")
 parser_group.add_argument("--json_onnx_config", help="Path to JSON config file for ONNX model used for clustering", default="/afs/cern.ch/work/l/lherrman/private/inference/k4PFHitML/scripts/config_hits_track_v2_noise.json")
 
 

@@ -28,6 +28,8 @@
 #include "edm4hep/ReconstructedParticleCollection.h"
 #include "edm4hep/CalorimeterHitCollection.h"
 
+#include "Helpers.h"
+
 #include <torch/torch.h>
 #include "ONNXHelper.h"  
 
@@ -45,7 +47,7 @@ DataPreprocessing::DataPreprocessing(
   
 
 std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
-    std::map<std::string, std::vector<float>> features;
+    std::map<std::string, std::vector<float>> features; //features used for clustering model
 
     // collection of hits
     std::vector<std::pair<std::string, const edm4hep::CalorimeterHitCollection*>> hit_collections = {
@@ -57,12 +59,15 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
         {"MUON",        &muons_}
     };
 
+    
+    float hit_e_sum = 0;
 
     for (const auto& [name, hit_collection] : hit_collections){
         for (const auto& hit : *hit_collection){
 
             auto pos = hit.getPosition();
             auto energy = hit.getEnergy();
+            hit_e_sum += energy;
             
             float x = pos.x;
             float y = pos.y;
@@ -92,6 +97,8 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
         }
     }
 
+    features["hit_e_sum"].push_back(hit_e_sum);
+
     //extract track information
     for (const auto& track : tracks_) {
         
@@ -100,6 +107,7 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
         float omega = trackstate.omega;
         float phi = trackstate.phi;
         float tanLambda = trackstate.tanLambda;
+        float chi2 = track.getChi2();
 
         float pt = 2.99792e-4 * std::abs(2.0/omega);  // B filed 2T
         float px = std::cos(phi) * pt;
@@ -109,6 +117,7 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
    
         features["p_tracks"].push_back(p);
         features["e_tracks"].push_back(0);  
+        features["chi2"].push_back(chi2); 
 
         //also add features for trackstate at calo
         auto trackstate_calo = track.getTrackStates()[3];
@@ -238,6 +247,37 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
   
     return {input_tensor, input_shapes, h.size(0)};
 
+  }
+
+  
+  //prepare the inputs for energy regression and PID
+  std::vector<float> DataPreprocessing::prepare_prop(std::map<std::string, std::vector<float>> features) const {
+    
+    //std::map<std::string, std::vector<float>> features_prop; //features for property determination
+    int num_hits = features.at("hit_type_feature_hit").size(); 
+    int num_tracks = tracks_.size(); 
+
+    
+    //these are used as inputs. Find order
+    float sum_e = features.at("hit_e_sum")[0];
+    float ECAL_e_fraction = energy_sys(2, features, false) / sum_e;
+    float HCAL_e_fraction = energy_sys(3, features, false) / sum_e;
+    float Muon_e = energy_sys(4, features, false);
+    float num_muon = muons_.size(); 
+    float track_p = mean(features, "p_tracks"); //take mean momentum of tracks
+    float n_ecal_hits = ecalbarrel_.size() + ecalendcap_.size();
+    float n_hcal_hits = hcalbarrel_.size() + hcalendcap_.size() + hcalother_.size();
+    float dispersion_ecal = disperion(2, features, n_ecal_hits);
+    float dispersion_hcal = disperion(3, features, n_hcal_hits);
+    float chi2 = std::clamp(mean(features, "chi2"), -5.0f, 5.0f); 
+    
+
+    
+   
+
+
+
+    return features.at("p_hits");
   }
 
 
