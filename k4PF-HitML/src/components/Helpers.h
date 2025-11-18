@@ -45,6 +45,8 @@
   float mean(std::map<std::string, std::vector<float>> features, std::string variable);
   std::array<float,3>  mean_pos(std::map<std::string, std::vector<float>> features);
   float disperion(int hit_type, std::map<std::string, std::vector<float>> features, float n_sys_hits);
+  float calculate_eta(float x, float y, float z);
+  float calculate_phi(float x, float y);
 
  
  #endif // HELPERS_H

@@ -276,9 +276,10 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
     float mean_x = mean_xyz[0];
     float mean_y = mean_xyz[1];
     float mean_z = mean_xyz[2];
+    float eta = calculate_eta(mean_x, mean_y, mean_z);
+    float phi = calculate_phi(mean_x, mean_y);
     
-    //eta
-    //phi
+ 
 
     
    
