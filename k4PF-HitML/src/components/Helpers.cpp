@@ -96,6 +96,38 @@
  }
 
 
+ std::array<float,3> mean_pos(std::map<std::string, std::vector<float>> features){
+
+  std::vector<float> xyz = features.at("pos_hits_xyz_tracks");
+  
+  float x_sum = 0.0f, y_sum = 0.0f, z_sum = 0.0f;
+  int n_hits = xyz.size() / 3;
+  
+  for (int i = 0; i < n_hits; ++i) {
+      x_sum += xyz[3*i + 0];
+      y_sum += xyz[3*i + 1];
+      z_sum += xyz[3*i + 2];
+  }
+  
+  float x_mean;
+  float y_mean;
+  float z_mean;
+
+  if (n_hits > 0) {
+      x_mean = x_sum / n_hits;
+      y_mean = y_sum / n_hits;
+      z_mean = z_sum / n_hits;
+  } else {
+      x_mean = 0.0f;
+      y_mean = 0.0f;
+      z_mean = 0.0f;
+  }
+
+  return {x_mean, y_mean, z_mean};
+
+ }
+
+
   // var = E(x^2) - E(x)^2
  float disperion(int hit_type, std::map<std::string, std::vector<float>> features, float n_sys_hits){
 

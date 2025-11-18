@@ -270,7 +270,15 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
     float dispersion_ecal = disperion(2, features, n_ecal_hits);
     float dispersion_hcal = disperion(3, features, n_hcal_hits);
     float chi2 = std::clamp(mean(features, "chi2"), -5.0f, 5.0f); 
+
+    std::array<float,3> mean_xyz = mean_pos(features);
+
+    float mean_x = mean_xyz[0];
+    float mean_y = mean_xyz[1];
+    float mean_z = mean_xyz[2];
     
+    //eta
+    //phi
 
     
    
@@ -284,3 +292,4 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
   // mache eine funktion, die vorbereitet fuer model Format
 //sind die track states correct?
 //hit type correct?, shouldn't it be N,1?
+//eta, phi und mean x,y,z is do iwie das selbe

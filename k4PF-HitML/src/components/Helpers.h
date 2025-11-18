@@ -43,6 +43,7 @@
 
   float energy_sys(int hit_type, std::map<std::string, std::vector<float>> features, bool squared);
   float mean(std::map<std::string, std::vector<float>> features, std::string variable);
+  std::array<float,3>  mean_pos(std::map<std::string, std::vector<float>> features);
   float disperion(int hit_type, std::map<std::string, std::vector<float>> features, float n_sys_hits);
 
  
