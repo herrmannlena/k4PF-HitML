@@ -31,7 +31,7 @@ parser_group.add_argument("--inputFiles", nargs="+", metavar=("file1", "file2"),
 #parser_group.add_argument("--outputFile", help="Output file name", default="output_MLPF.root")
 parser_group.add_argument("--num_ev", type=int, help="Number of events to process (-1 means all)", default=-1)
 parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model used for clustering", default="/eos/user/l/lherrman/FCC/models/clustering_model_Hss.onnx")
-parser_group.add_argument("--json_onnx_config", help="Path to JSON config file for ONNX model used for clustering", default="/afs/cern.ch/work/l/lherrman/private/inference/k4PFHitML/scripts/config_hits_track_v2_noise.json")
+parser_group.add_argument("--onnx_model_properties", help="Path to ONNX model used for energy regression and PID", default="/eos/user/l/lherrman/FCC/models/properties_model.onnx")
 
 
 args = parser.parse_known_args()[0]
@@ -42,7 +42,7 @@ svc.Input = args.inputFiles
 
 Multitransformer = PFHitML("PFHitML",
                             model_path_clustering=args.onnx_model_clustering,
-                            json_path=args.json_onnx_config
+                            model_path_properties=args.onnx_model_properties
                     )
 
 ApplicationMgr(TopAlg=[Multitransformer],

@@ -127,7 +127,7 @@ struct PFHitML final:
     
     std::vector<std::vector<float>>  outputs = m_onnx->run(inputs_onnx, input_shapes, batch_size);
 
-    //std::cout << "output" << outputs[0][0] <<"" << outputs[0][1]  <<std::endl;
+    //std::cout << "output" << outputs[0][0] <<"" << outputs[0][1]  << "size" << outputs[0].size()<<std::endl;
     //get two outputs, first one has shape (N,4) (three coordinates in embedding space + beta)
     // second output is  dummy for pred_energy_corr (not needed at this stage)
     
@@ -155,7 +155,18 @@ struct PFHitML final:
     
     //look here: https://github.com/selvaggi/mlpf/blob/main/src/utils/post_clustering_features.py
     auto prop_inputs = extractor.prepare_prop(inputs); //determine and convert inputs for regression model
+
+
+
+
+
+    //////////////////////////////////////////////////
+    ////////// Inference Property Model //////////////
+    //////////////////////////////////////////////////
     
+
+    
+
 
     
     
@@ -167,12 +178,11 @@ struct PFHitML final:
   StatusCode initialize() override {
     info() << "Initializing PFHitML and loading model..." << endmsg;
     
-    //fix this.. not needed?
-    input_names = extract_input_names(json_path);
-    
     //Create the onnx 
-    //fix input names, provide only orderd inputs..
-    m_onnx = std::make_unique<ONNXHelper>(model_path_clustering.value(), names);
+    //fix input names, can you get rid of it?
+    m_onnx = std::make_unique<ONNXHelper>(model_path_clustering.value());
+
+    m_onnx_prop = std::make_unique<ONNXHelper>(model_path_properties.value());
 
 
     
@@ -186,23 +196,20 @@ struct PFHitML final:
 
   private:
   
-  std::vector<std::string> input_names;
-  //std::vector<std::string> names = {"X_hit", "X_track"};
-  //names that are saved in the model
-  std::vector<std::string> names = {"inputs"};
 
   std::unique_ptr<ONNXHelper> m_onnx;
+  std::unique_ptr<ONNXHelper> m_onnx_prop;
   rv::RVec<std::string> vars;
 
   Gaudi::Property<std::string> model_path_clustering{
     this, "model_path_clustering", "/eos/user/l/lherrman/FCC/models/clustering_truth_update.onnx",
     "Path to the ONNX clustering model"};
+
+  Gaudi::Property<std::string> model_path_properties{
+    this, "model_path_properties", "/eos/user/l/lherrman/FCC/models/properties_model.onnx",
+    "Path to the ONNX model for energy regression and PID"};
   
-  
-  Gaudi::Property<std::string> json_path{
-    this, "json_path",
-    "/afs/cern.ch/work/l/lherrman/private/inference/k4PFHitML/scripts/config_hits_track_v2_noise.json",
-    "Path to the JSON configuration file for the ONNX model"};
+
 
 
 

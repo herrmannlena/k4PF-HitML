@@ -33,13 +33,6 @@
  
 
  
- /**
-  * Load a JSON file from a given path.
-  * @param json_path: the path to the JSON file
-  * @return: the JSON object
-  */
-  std::vector<std::string> extract_input_names(const std::string& json_path);
-
 
   float energy_sys(int hit_type, std::map<std::string, std::vector<float>> features, bool squared);
   float mean(std::map<std::string, std::vector<float>> features, std::string variable);

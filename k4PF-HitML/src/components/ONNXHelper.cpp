@@ -27,9 +27,9 @@
 
  //taken from https://github.com/key4hep/k4MLJetTagger/blob/main/k4MLJetTagger/src/components/ONNXRuntime.h
  
- ONNXHelper::ONNXHelper(const std::string& model_path, const std::vector<std::string>& input_names)
+ ONNXHelper::ONNXHelper(const std::string& model_path)
      : m_env(new Ort::Env(OrtLoggingLevel::ORT_LOGGING_LEVEL_WARNING, "onnx_runtime")), m_allocator(),
-       m_inputNames(input_names), m_cpu_mem_info(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault)) {
+      m_cpu_mem_info(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault)) {
    if (model_path.empty())
      throw std::runtime_error("Path to ONNX model cannot be empty!");
    Ort::SessionOptions options;
@@ -75,16 +75,18 @@
  ONNXHelper::Tensor<T> ONNXHelper::run(Tensor<T>& input, const Tensor<long>& input_shapes,
                                          unsigned long long batch_size) const {
    std::vector<Ort::Value> tensors_in;
-   for (const auto& name : m_inputNodeStrings) {
-     std::cout<<"the names"<< name <<std::endl;
-     auto input_pos = variablePos(name);
-     auto value = input.begin() + input_pos;
+   if (input.size() != m_inputNodeStrings.size()) {
+      throw std::runtime_error("Number of provided inputs does not match model inputs");
+   }
+   for (std::size_t i = 0; i < m_inputNodeStrings.size(); ++i) {
+     const auto& name = m_inputNodeStrings[i];
+     auto& value = input[i];
      std::vector<int64_t> input_dims;
      if (input_shapes.empty()) {
        input_dims = m_inputNodeDims.at(name);
        input_dims[0] = batch_size;
      } else {
-       input_dims = input_shapes[input_pos];
+       input_dims = input_shapes[i];
      }
      // rely on the given input_shapes to set the batch size
      if (input_dims[0] != static_cast<long>(batch_size)) {
@@ -92,14 +94,14 @@
                                 ") does not match the given `batch_size` (" + std::to_string(batch_size) + ")");
      }
      auto expected_len = std::accumulate(input_dims.begin(), input_dims.end(), 1, std::multiplies<int64_t>());
-     if (expected_len != (int64_t)value->size())
-       throw std::runtime_error("Input array '" + name + "' has a wrong size of " + std::to_string(value->size()) +
+     if (expected_len != (int64_t)value.size())
+       throw std::runtime_error("Input array '" + name + "' has a wrong size of " + std::to_string(value.size()) +
                                 ", expected " + std::to_string(expected_len));
  
      //const OrtMemoryInfo* fInfo;
      //fInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
      auto input_tensor =
-         Ort::Value::CreateTensor<float>(m_cpu_mem_info, value->data(), value->size(), input_dims.data(), input_dims.size());
+         Ort::Value::CreateTensor<float>(m_cpu_mem_info, value.data(), value.size(), input_dims.data(), input_dims.size());
      if (!input_tensor.IsTensor())
        throw std::runtime_error("Failed to create an input tensor for variable '" + name + "'.");
      tensors_in.emplace_back(std::move(input_tensor));
@@ -140,13 +142,7 @@
  
    return outputs;
  }
- 
- size_t ONNXHelper::variablePos(const std::string& name) const {
-   auto iter = std::find(m_inputNames.begin(), m_inputNames.end(), name);
-   if (iter == m_inputNames.end())
-     throw std::runtime_error("Input variable '" + name + " is not provided");
-   return iter - m_inputNames.begin();
- }
+
 
  static Ort::MemoryInfo CpuMemInfo() {
   return Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault); 

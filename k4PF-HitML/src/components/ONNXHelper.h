@@ -50,7 +50,7 @@
     * @param model_path Path to the ONNX model file.
     * @param input_names List of input variable names to bind during inference.
     */
-   explicit ONNXHelper(const std::string& model_path = "", const std::vector<std::string>& input_names = {});
+   explicit ONNXHelper(const std::string& model_path = "");
  
    /**
     * @brief Destructor to clean up the ONNXHelper environment and session.

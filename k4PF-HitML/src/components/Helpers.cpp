@@ -21,37 +21,6 @@
  #include "Gaudi/Property.h"
 
  
- std::vector<std::string>  extract_input_names(const std::string& json_path) {
-   
-   std::ifstream json_file(json_path);
-   if (!json_file.is_open()) {
-     std::cerr << "Failed to open JSON file: " << json_path << std::endl;
-   }
-   nlohmann::json json_config;
-   json_file >> json_config;
-
-   // Map: input name -> vector of variable names
-   std::map<std::string, std::vector<std::string>> inputVarNames;
-
-   const auto& inputs = json_config.at("inputs");
-   std::vector<std::string> vars;
-   for (auto& [inputName, inputParams] : inputs.items()) {
-       
-
-       // Each element of "vars" is an array like ["hit_x", null]
-       for (const auto& v : inputParams.at("vars")) {
-           if (v.is_array() && !v.empty() && v[0].is_string()) {
-               vars.push_back(v[0].get<std::string>());
-           }
-       }
-
-       inputVarNames[inputName] = vars;
-   }
-
-   
-   return vars;
- }
-
 
  //determine energy of subsystem
  float energy_sys(int hit_type, std::map<std::string, std::vector<float>> features, bool squared){
