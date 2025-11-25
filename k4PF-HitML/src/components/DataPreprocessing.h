@@ -31,6 +31,10 @@
 
 
 
+struct PreprocessedData {
+   std::map<std::string, std::vector<float>> features;
+   std::vector<std::array<int64_t,3>> hit_mapping;  
+};
  
 class DataPreprocessing {
  public:
@@ -44,12 +48,23 @@ class DataPreprocessing {
     const edm4hep::TrackCollection& tracks);
   
 
-    std::map<std::string, std::vector<float>>extract() const;
+    PreprocessedData extract() const;
 
     std::tuple<ONNXHelper::Tensor<float>,ONNXHelper::Tensor<long>,unsigned long long> convertModelInputs(std::map<std::string, std::vector<float>> features) const;
     std::vector<float> prepare_prop(std::map<std::string, std::vector<float>> features) const;
     // ONNXHelper::Tensor<long> m_inputShapes;  
 
+ 
+   // helper function to return collections
+    const edm4hep::CalorimeterHitCollection& ecalBarrel()   const { return ecalbarrel_; }
+    const edm4hep::CalorimeterHitCollection& hcalBarrel()   const { return hcalbarrel_; }
+    const edm4hep::CalorimeterHitCollection& ecalEndcap()   const { return ecalendcap_; }
+    const edm4hep::CalorimeterHitCollection& hcalEndcap()   const { return hcalendcap_; }
+    const edm4hep::CalorimeterHitCollection& hcalOther()    const { return hcalother_; }
+    const edm4hep::CalorimeterHitCollection& muons()        const { return muons_; }
+    const edm4hep::TrackCollection& tracks()                const { return tracks_; }
+      
+  
 
    
  private:

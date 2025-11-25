@@ -44,10 +44,16 @@ DataPreprocessing::DataPreprocessing(
     : ecalbarrel_(EcalBarrel_hits), hcalbarrel_(HcalBarrel_hits),
     ecalendcap_(EcalEndcap_hits), hcalendcap_(HcalEndcap_hits), hcalother_(HcalOther_hits), 
     muons_(Muon_hits), tracks_(tracks){}
+
+
+    
   
 
-std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
-    std::map<std::string, std::vector<float>> features; //features used for clustering model
+PreprocessedData DataPreprocessing::extract() const {
+    //std::map<std::string, std::vector<float>> features; //features used for clustering model
+    PreprocessedData out;
+    auto& features = out.features;
+    auto& hit_mapping = out.hit_mapping;
 
     // collection of hits
     std::vector<std::pair<std::string, const edm4hep::CalorimeterHitCollection*>> hit_collections = {
@@ -61,8 +67,11 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
 
     
     float hit_e_sum = 0;
+    int globalHitIndex = 0;
+    int collectionIndex = 0;
 
     for (const auto& [name, hit_collection] : hit_collections){
+        int hitIndex = 0;
         for (const auto& hit : *hit_collection){
 
             auto pos = hit.getPosition();
@@ -93,13 +102,22 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
             features["e_hits"].push_back(energy);
             features["p_hits"].push_back(0);
             features["hit_type_feature_hit"].push_back(htype);
+
+            //include mapping
+            hit_mapping.push_back({htype, collectionIndex, hitIndex});
+
+            globalHitIndex += 1;
+            hitIndex += 1;
             
         }
+
+        collectionIndex += 1;
     }
 
     features["hit_e_sum"].push_back(hit_e_sum);
 
     //extract track information
+    int trackIndex = 0;
     for (const auto& track : tracks_) {
         
         //trackstate at IP?
@@ -133,10 +151,15 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
         features["pos_hits_xyz_tracks"].push_back(y_c);
         features["pos_hits_xyz_tracks"].push_back(z_c);
         features["hit_type_feature_track"].push_back(htype_c);
+
+        hit_mapping.push_back({htype_c, collectionIndex, trackIndex});
+
+        globalHitIndex += 1;
+        trackIndex += 1;
         
     }
       
-    return features;
+    return out;
   }
 
 
@@ -251,6 +274,7 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
 
   
   //prepare the inputs for energy regression and PID
+  //I think this is not correct. features per physical cluster?? check this again
   std::vector<float> DataPreprocessing::prepare_prop(std::map<std::string, std::vector<float>> features) const {
     
     //std::map<std::string, std::vector<float>> features_prop; //features for property determination
@@ -278,11 +302,13 @@ std::map<std::string, std::vector<float>> DataPreprocessing::extract() const {
     float mean_z = mean_xyz[2];
     float eta = calculate_eta(mean_x, mean_y, mean_z);
     float phi = calculate_phi(mean_x, mean_y);
-    
- 
+
+
+
+
 
     
-   
+
 
 
 

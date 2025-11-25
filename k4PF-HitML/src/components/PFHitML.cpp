@@ -32,6 +32,7 @@
 #include "DataPreprocessing.h"
 #include "Clustering.h"  
 #include "Helpers.h"  
+#include "ShowerBuilder.h"
 #include "ROOT/RVec.hxx"
 #include <nlohmann/json.hpp> 
 
@@ -116,8 +117,9 @@ struct PFHitML final:
     
     //get input variables
     auto inputs = extractor.extract();
+    auto inputs_features = inputs.features;
     //convert inputs to expected shape 
-    auto [inputs_onnx, input_shapes, batch_size] = extractor.convertModelInputs(inputs);
+    auto [inputs_onnx, input_shapes, batch_size] = extractor.convertModelInputs(inputs_features);
 
 
     ///////////////////////////////////////////////////
@@ -138,24 +140,33 @@ struct PFHitML final:
 
     // expect output tensor of length N with cluster labels
     Clustering clusterer(0.5, 0.2);
-    torch::Tensor cluster_label = clusterer.get_clustering(outputs[0]);
+    torch::Tensor cluster_label = clusterer.get_clustering(outputs[0]); //length of hits [000 3 7 7 7 7 10 2 2 2 ..]
 
     std::cout << "cluster output" << cluster_label.sizes() <<std::endl;
 
-    torch::Tensor uniqueTensor;
-    torch::Tensor inverseIndices;
-    std::tie(uniqueTensor, inverseIndices) = at::_unique(cluster_label, true, true);
-
     //final output collection
     auto MLPF = edm4hep::ReconstructedParticleCollection();
+
+
+ 
+    //the pipeline:
+    //after clustering, form graphs of hits belonging to one cluster
+
+    //this function gets the clusters, within this function you can create shower instances, set x,y,z,..
+    ShowerBuilder builder(extractor, inputs);
+    auto showers = builder.buildShowers(cluster_label);
+    std::cout << "shower output" << showers.size() <<std::endl;
+    
 
     ////////////////////////////////////
     //// ENERGY REGRESSION & PID ///////
     ////////////////////////////////////
     
     //look here: https://github.com/selvaggi/mlpf/blob/main/src/utils/post_clustering_features.py
-    auto prop_inputs = extractor.prepare_prop(inputs); //determine and convert inputs for regression model
+    auto prop_inputs = extractor.prepare_prop(inputs_features); //determine and convert inputs for regression model
 
+    
+    
 
 
 

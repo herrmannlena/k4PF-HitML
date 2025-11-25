@@ -29,6 +29,8 @@
  #include <unordered_map>
  
  #include "ROOT/RVec.hxx"
+ #include <torch/torch.h>
+ #include "edm4hep/ReconstructedParticleCollection.h"
  //#include "Structs.h"
  
 
@@ -40,6 +42,7 @@
   float disperion(int hit_type, std::map<std::string, std::vector<float>> features, float n_sys_hits);
   float calculate_eta(float x, float y, float z);
   float calculate_phi(float x, float y);
+  //float get_particle(torch::Tensor cluster_label, std::map<std::string, std::vector<float>> inputs, edm4hep::ReconstructedParticleCollection& MLPF);
 
  
  #endif // HELPERS_H

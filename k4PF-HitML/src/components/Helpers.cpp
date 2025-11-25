@@ -19,6 +19,8 @@
  #include "Helpers.h"
 
  #include "Gaudi/Property.h"
+ #include <torch/torch.h>
+ #include "edm4hep/ReconstructedParticleCollection.h"
 
  
 
@@ -128,6 +130,81 @@ float calculate_eta(float x, float y, float z) {
   return -std::log(tan_half_theta);
 }
 
+/*
+float get_particle(torch::Tensor cluster_label, std::map<std::string, std::vector<float>> inputs,  edm4hep::ReconstructedParticleCollection& MLPF){
+  
+  torch::Tensor uniqueTensor; // enumerates showers [0,1,2,3]
+  torch::Tensor inverseIndices; // each hit gets shower label i.e. [3,3,3,3,2,3,0,0,0,2,2,2,2,1,1,1,1]
+  std::tie(uniqueTensor, inverseIndices) = at::_unique(cluster_label, true, true);
+
+
+  //number of particles
+  int64_t num_part = uniqueTensor.numel();
+
+  auto uniqueView = uniqueTensor.accessor<int64_t, 1>();
+
+  std::cout << "num particles" << num_part <<std::endl;
+ 
+  for (int64_t i = 0; i < num_part; ++i) {
+
+    int64_t label = uniqueView[i];
+
+    // Create a PF shower object
+    auto pf = MLPF.create();
+
+    // Mask hits belonging to this cluster
+    torch::Tensor mask    = (cluster_label == label);           // [00011000]
+    torch::Tensor indices = torch::nonzero(mask).flatten();     // [3,4]
+
+
+    auto idxView = indices.accessor<int64_t, 1>();
+
+    // assign the hits to the shower object.
+    //understand which properties you can add like mean x of clusters..
+    // I think I would fill all of this in a shower class and in the end if all values are fixed and assigned pass and fill to MLPF object
+
+
+    for (int64_t j = 0; j < indices.size(0); ++j) {
+
+        int64_t hitIdxModel = idxView[j];       // index in NN input order
+
+        int64_t htype = hitMapView[hitIdxModel][0];
+        int64_t coll  = hitMapView[hitIdxModel][1];
+        int64_t hidx  = hitMapView[hitIdxModel][2];
+
+        // Now fetch the original hit from the right collection
+        const edm4hep::CalorimeterHit* hitPtr = nullptr;
+
+        if (htype == 2) {               // ECAL
+            auto collPtr = ecalCollections[coll];
+            hitPtr = &collPtr->at(hidx);
+        } else if (htype == 3) {        // HCAL
+            auto collPtr = hcalCollections[coll];
+            hitPtr = &collPtr->at(hidx);
+        } else if (htype == 4) {        // MUON
+            auto collPtr = muonCollections[coll];
+            hitPtr = &collPtr->at(hidx);
+        } else {
+            auto collPtr = otherCaloCollections[coll];
+            hitPtr = &collPtr->at(hidx);
+        }
+
+        // Attach hit to the PF object
+        // (exact name depends on your EDM4hep bindings)
+        pf.addToClusters(*hitPtr);      // or addToParticleIDs, etc.
+
+        //add hits to shower object. later function to get energy corrction properties
+
+    }
+       
+
+  }
+    
+
+
+  return 1.0;
+}
+*/
 
     
 
