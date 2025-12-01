@@ -31,18 +31,18 @@
  #include "ROOT/RVec.hxx"
  #include <torch/torch.h>
  #include "edm4hep/ReconstructedParticleCollection.h"
+ #include "Shower.h"
  //#include "Structs.h"
  
 
  
 
-  float energy_sys(int hit_type, std::map<std::string, std::vector<float>> features, bool squared);
-  float mean(std::map<std::string, std::vector<float>> features, std::string variable);
-  std::array<float,3>  mean_pos(std::map<std::string, std::vector<float>> features);
-  float disperion(int hit_type, std::map<std::string, std::vector<float>> features, float n_sys_hits);
+  float mean_var(std::vector<float> features);
+  float disperion(Shower shower_i, std::vector<edm4hep::CalorimeterHit>);
   float calculate_eta(float x, float y, float z);
   float calculate_phi(float x, float y);
-  //float get_particle(torch::Tensor cluster_label, std::map<std::string, std::vector<float>> inputs, edm4hep::ReconstructedParticleCollection& MLPF);
+  std::vector<std::vector<float>> one_hot_encode(std::vector<int>, int n_classes);
+  
 
  
  #endif // HELPERS_H

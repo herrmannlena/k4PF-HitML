@@ -33,6 +33,7 @@
 #include "Clustering.h"  
 #include "Helpers.h"  
 #include "ShowerBuilder.h"
+#include "Shower.h"
 #include "ROOT/RVec.hxx"
 #include <nlohmann/json.hpp> 
 
@@ -154,7 +155,7 @@ struct PFHitML final:
 
     //this function gets the clusters, within this function you can create shower instances, set x,y,z,..
     ShowerBuilder builder(extractor, inputs);
-    auto showers = builder.buildShowers(cluster_label);
+    auto showers = builder.buildShowers(cluster_label, outputs[0]);
     std::cout << "shower output" << showers.size() <<std::endl;
     
 
@@ -163,7 +164,7 @@ struct PFHitML final:
     ////////////////////////////////////
     
     //look here: https://github.com/selvaggi/mlpf/blob/main/src/utils/post_clustering_features.py
-    auto prop_inputs = extractor.prepare_prop(inputs_features); //determine and convert inputs for regression model
+    auto prop_inputs = extractor.prepare_prop(showers); //determine and convert inputs for regression model
 
     
     

@@ -29,6 +29,7 @@
 #include "edm4hep/CalorimeterHitCollection.h"
 
 #include "Helpers.h"
+#include "Shower.h"
 
 #include <torch/torch.h>
 #include "ONNXHelper.h"  
@@ -66,7 +67,6 @@ PreprocessedData DataPreprocessing::extract() const {
     };
 
     
-    float hit_e_sum = 0;
     int globalHitIndex = 0;
     int collectionIndex = 0;
 
@@ -76,7 +76,7 @@ PreprocessedData DataPreprocessing::extract() const {
 
             auto pos = hit.getPosition();
             auto energy = hit.getEnergy();
-            hit_e_sum += energy;
+           
             
             float x = pos.x;
             float y = pos.y;
@@ -114,7 +114,6 @@ PreprocessedData DataPreprocessing::extract() const {
         collectionIndex += 1;
     }
 
-    features["hit_e_sum"].push_back(hit_e_sum);
 
     //extract track information
     int trackIndex = 0;
@@ -125,7 +124,7 @@ PreprocessedData DataPreprocessing::extract() const {
         float omega = trackstate.omega;
         float phi = trackstate.phi;
         float tanLambda = trackstate.tanLambda;
-        float chi2 = track.getChi2();
+
 
         float pt = 2.99792e-4 * std::abs(2.0/omega);  // B filed 2T
         float px = std::cos(phi) * pt;
@@ -135,7 +134,7 @@ PreprocessedData DataPreprocessing::extract() const {
    
         features["p_tracks"].push_back(p);
         features["e_tracks"].push_back(0);  
-        features["chi2"].push_back(chi2); 
+    
 
         //also add features for trackstate at calo
         auto trackstate_calo = track.getTrackStates()[3];
@@ -274,49 +273,87 @@ PreprocessedData DataPreprocessing::extract() const {
 
   
   //prepare the inputs for energy regression and PID
-  //I think this is not correct. features per physical cluster?? check this again
-  std::vector<float> DataPreprocessing::prepare_prop(std::map<std::string, std::vector<float>> features) const {
+  ONNXHelper::Tensor<long> DataPreprocessing::prepare_prop(std::vector<Shower> showers) const {
     
-    //std::map<std::string, std::vector<float>> features_prop; //features for property determination
-    int num_hits = features.at("hit_type_feature_hit").size(); 
-    int num_tracks = tracks_.size(); 
+    //loop over showers
+    for (auto& shower_i : showers) {
+        //these are used as inputs. Find order
+        //also fakes? do I need to also implement that part?
+
+        //variab;es that are fed to gatr 
+
+        //pos from calo and track
+        std::vector<float> pos_x = std::get<0>(shower_i.get_pos()); //0
+        std::vector<float> pos_y = std::get<1>(shower_i.get_pos()); //1
+        std::vector<float> pos_z = std::get<2>(shower_i.get_pos()); //2
+
+        std::vector<std::vector<float>> hit_one_hot = one_hot_encode(shower_i.types_, 4); //3-6
+
+        std::vector<float> e_vector = std::get<0>(shower_i.get_ep()); //7
+        std::vector<float> p_vector = std::get<1>(shower_i.get_ep()); //8
+
+        std::vector<float> betas = shower_i.betas_; //9
+
+        //include distinction charged neutral..
+       
+
+        // high level stuff
+
+        float sum_e = shower_i.getCaloEnergy(shower_i.caloHits_).first; //16
+        float muon_e = shower_i.getCaloEnergy(shower_i.muonHits_).first; //19
+        float ecal_e = shower_i.getCaloEnergy(shower_i.ecalHits_).first;
+        float hcal_e = shower_i.getCaloEnergy(shower_i.hcalHits_).first;
+
+        float ECAL_e_fraction = ecal_e / sum_e; //10
+        float HCAL_e_fraction = hcal_e / sum_e; //11
+
+        int num_hits = shower_i.getCalorimeterHits().size(); 
+        int num_tracks = shower_i.getTracks().size(); //17
+        int num_muon_hits = shower_i.muonHits_.size(); //20
+
+        int total_hits = num_hits + num_tracks;   // include tracks or not? //12
+
+        float track_p = shower_i.getTrackMomentum_mean(); //13
+
+        float dispersion_ecal = disperion(shower_i, shower_i.ecalHits_); //14
+        float dispersion_hcal = disperion(shower_i, shower_i.hcalHits_); //15
+
+        float chi2 = std::clamp(shower_i.Chi2_mean(), -5.0f, 5.0f); //18
+
+        float mean_x = mean_var(pos_x); //21
+        float mean_y = mean_var(pos_y); //22
+        float mean_z = mean_var(pos_z); //23
+
+        float eta = calculate_eta(mean_x, mean_y, mean_z); //24
+        float phi = calculate_phi(mean_x, mean_y); //25
+
+        //pos is a track thing?
+
+        //check if the calculation of these quantities correct? just mean? i.e. scatter sum? 
+        //some other transformations?
+
+        //right order?
+
+        
+
+        //push back.. 
+        
+
+
+
+    }
 
     
-    //these are used as inputs. Find order
-    float sum_e = features.at("hit_e_sum")[0];
-    float ECAL_e_fraction = energy_sys(2, features, false) / sum_e;
-    float HCAL_e_fraction = energy_sys(3, features, false) / sum_e;
-    float Muon_e = energy_sys(4, features, false);
-    float num_muon = muons_.size(); 
-    float track_p = mean(features, "p_tracks"); //take mean momentum of tracks
-    float n_ecal_hits = ecalbarrel_.size() + ecalendcap_.size();
-    float n_hcal_hits = hcalbarrel_.size() + hcalendcap_.size() + hcalother_.size();
-    float dispersion_ecal = disperion(2, features, n_ecal_hits);
-    float dispersion_hcal = disperion(3, features, n_hcal_hits);
-    float chi2 = std::clamp(mean(features, "chi2"), -5.0f, 5.0f); 
-
-    std::array<float,3> mean_xyz = mean_pos(features);
-
-    float mean_x = mean_xyz[0];
-    float mean_y = mean_xyz[1];
-    float mean_z = mean_xyz[2];
-    float eta = calculate_eta(mean_x, mean_y, mean_z);
-    float phi = calculate_phi(mean_x, mean_y);
 
 
 
+    ONNXHelper::Tensor<long> rdn;
 
 
-    
-
-
-
-
-    return features.at("p_hits");
+    return rdn;
   }
 
 
   // mache eine funktion, die vorbereitet fuer model Format
 //sind die track states correct?
 //hit type correct?, shouldn't it be N,1?
-//eta, phi und mean x,y,z is do iwie das selbe

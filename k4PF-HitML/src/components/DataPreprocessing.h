@@ -29,6 +29,8 @@
 #include <torch/torch.h>
 #include "ONNXHelper.h"  
 
+#include "Shower.h"
+
 
 
 struct PreprocessedData {
@@ -51,7 +53,7 @@ class DataPreprocessing {
     PreprocessedData extract() const;
 
     std::tuple<ONNXHelper::Tensor<float>,ONNXHelper::Tensor<long>,unsigned long long> convertModelInputs(std::map<std::string, std::vector<float>> features) const;
-    std::vector<float> prepare_prop(std::map<std::string, std::vector<float>> features) const;
+    ONNXHelper::Tensor<long> prepare_prop(std::vector<Shower> shower) const;
     // ONNXHelper::Tensor<long> m_inputShapes;  
 
  

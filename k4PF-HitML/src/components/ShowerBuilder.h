@@ -22,7 +22,7 @@ class ShowerBuilder {
             
         {}
     
-        std::vector<Shower> buildShowers(const torch::Tensor& cluster_label);
+        std::vector<Shower> buildShowers(const torch::Tensor& cluster_label, const std::vector<float>& betas);
     
     private:
         const DataPreprocessing& dp_;
