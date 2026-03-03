@@ -124,6 +124,13 @@ const std::tuple<std::vector<float>, std::vector<float>, std::vector<float>> Sho
     all_z.insert(all_z.end(), calo_z.begin(), calo_z.end());
     all_z.insert(all_z.end(), track_z.begin(), track_z.end());
 
+    constexpr float norm = 3300.f;
+    for (size_t i = 0; i < all_x.size(); ++i) {
+        all_x[i] /= norm;
+        all_y[i] /= norm;
+        all_z[i] /= norm;
+    }
+
     return {all_x, all_y, all_z};
 
 }

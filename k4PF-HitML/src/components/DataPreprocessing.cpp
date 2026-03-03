@@ -272,60 +272,115 @@ PreprocessedData DataPreprocessing::extract() const {
   }
 
   
-  //prepare the inputs for energy regression and PID
-  ONNXHelper::Tensor<long> DataPreprocessing::prepare_prop(std::vector<Shower> showers) const {
+
+  
+
+  //prepare the inputs for energy regression and PID, return node and global features
+  std::vector<ModelInputs> DataPreprocessing::prepare_prop(std::vector<Shower> showers) const {
     
-    //loop over showers
+    //loop over showers   
+    std::vector<ModelInputs> out;
+    out.reserve(showers.size());
+
     for (auto& shower_i : showers) {
+
+        ONNXHelper::Tensor<float> node_features;
+        node_features.reserve(9);
+    
+        std::vector<float> global_features;
+        global_features.reserve(16);
         //these are used as inputs. Find order
         //also fakes? do I need to also implement that part?
 
-        //variab;es that are fed to gatr 
+        //variab;es that are fed to gatr, investigate what to do
 
         //pos from calo and track
-        std::vector<float> pos_x = std::get<0>(shower_i.get_pos()); //0
-        std::vector<float> pos_y = std::get<1>(shower_i.get_pos()); //1
-        std::vector<float> pos_z = std::get<2>(shower_i.get_pos()); //2
+        auto [pos_x, pos_y, pos_z] = shower_i.get_pos();
 
         std::vector<std::vector<float>> hit_one_hot = one_hot_encode(shower_i.types_, 4); //3-6
 
-        std::vector<float> e_vector = std::get<0>(shower_i.get_ep()); //7
-        std::vector<float> p_vector = std::get<1>(shower_i.get_ep()); //8
+        auto [e_vector, p_vector] = shower_i.get_ep();
 
         std::vector<float> betas = shower_i.betas_; //9
+
+        node_features.push_back(pos_x);
+        node_features.push_back(pos_y);
+        node_features.push_back(pos_z);
+        // hit_one_hot: [n_hits][4]
+        for (size_t k = 0; k < 4; ++k) {
+            std::vector<float> one_hot_feature;
+            one_hot_feature.reserve(hit_one_hot.size());
+
+            for (size_t i = 0; i < hit_one_hot.size(); ++i) {
+                one_hot_feature.push_back(hit_one_hot[i][k]);
+            }
+
+            node_features.push_back(one_hot_feature);  // 3,4,5,6
+        }
+        node_features.push_back(e_vector);
+        node_features.push_back(p_vector);
+        node_features.push_back(betas);
+
+        
 
         //include distinction charged neutral..
        
 
         // high level stuff
 
-        float sum_e = shower_i.getCaloEnergy(shower_i.caloHits_).first; //16
-        float muon_e = shower_i.getCaloEnergy(shower_i.muonHits_).first; //19
+        float sum_e = shower_i.getCaloEnergy(shower_i.caloHits_).first; 
+        float muon_e = shower_i.getCaloEnergy(shower_i.muonHits_).first; 
         float ecal_e = shower_i.getCaloEnergy(shower_i.ecalHits_).first;
         float hcal_e = shower_i.getCaloEnergy(shower_i.hcalHits_).first;
 
-        float ECAL_e_fraction = ecal_e / sum_e; //10
-        float HCAL_e_fraction = hcal_e / sum_e; //11
+        float ECAL_e_fraction = ecal_e / sum_e; 
+        float HCAL_e_fraction = hcal_e / sum_e; 
 
         int num_hits = shower_i.getCalorimeterHits().size(); 
-        int num_tracks = shower_i.getTracks().size(); //17
-        int num_muon_hits = shower_i.muonHits_.size(); //20
+        int num_tracks = shower_i.getTracks().size(); 
+        int num_muon_hits = shower_i.muonHits_.size(); 
 
-        int total_hits = num_hits + num_tracks;   // include tracks or not? //12
+        int total_hits = num_hits + num_tracks;   // include tracks or not? 
 
-        float track_p = shower_i.getTrackMomentum_mean(); //13
+        float track_p = shower_i.getTrackMomentum_mean(); 
 
-        float dispersion_ecal = disperion(shower_i, shower_i.ecalHits_); //14
-        float dispersion_hcal = disperion(shower_i, shower_i.hcalHits_); //15
+        float dispersion_ecal = disperion(shower_i, shower_i.ecalHits_); 
+        float dispersion_hcal = disperion(shower_i, shower_i.hcalHits_); 
 
-        float chi2 = std::clamp(shower_i.Chi2_mean(), -5.0f, 5.0f); //18
+        float chi2 = std::clamp(shower_i.Chi2_mean(), -5.0f, 5.0f); 
 
-        float mean_x = mean_var(pos_x); //21
-        float mean_y = mean_var(pos_y); //22
-        float mean_z = mean_var(pos_z); //23
+        float mean_x = mean_var(pos_x); 
+        float mean_y = mean_var(pos_y); 
+        float mean_z = mean_var(pos_z); 
 
-        float eta = calculate_eta(mean_x, mean_y, mean_z); //24
-        float phi = calculate_phi(mean_x, mean_y); //25
+        float eta = calculate_eta(mean_x, mean_y, mean_z); 
+        float phi = calculate_phi(mean_x, mean_y); 
+
+        //add the global features, take right order!
+        
+
+        global_features.push_back(ECAL_e_fraction); //0
+        global_features.push_back(HCAL_e_fraction); //1
+        global_features.push_back(static_cast<float>(num_hits)); //2
+        global_features.push_back(track_p); //3
+        global_features.push_back(dispersion_ecal); //4
+        global_features.push_back(dispersion_hcal); //5
+        global_features.push_back(sum_e); //6
+        global_features.push_back(static_cast<float>(num_tracks)); //7
+        global_features.push_back(chi2); //8
+        global_features.push_back(muon_e); //9
+        global_features.push_back(static_cast<float>(num_muon_hits)); //10
+        global_features.push_back(mean_x); //11
+        global_features.push_back(mean_y); //12
+        global_features.push_back(mean_z); //13
+        global_features.push_back(eta); //14
+        global_features.push_back(phi); //15
+
+        ONNXHelper::Tensor<float> g_tensor;
+        g_tensor.reserve(1);
+        g_tensor.push_back(global_features);
+      
+        
 
         //pos is a track thing?
 
@@ -333,24 +388,15 @@ PreprocessedData DataPreprocessing::extract() const {
         //some other transformations?
 
         //right order?
+        out.emplace_back(std::move(node_features), std::move(g_tensor));
 
         
-
-        //push back.. 
-        
-
-
 
     }
 
-    
 
 
-
-    ONNXHelper::Tensor<long> rdn;
-
-
-    return rdn;
+    return out;
   }
 
 

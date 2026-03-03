@@ -37,6 +37,8 @@ struct PreprocessedData {
    std::map<std::string, std::vector<float>> features;
    std::vector<std::array<int64_t,3>> hit_mapping;  
 };
+
+using ModelInputs = std::tuple<ONNXHelper::Tensor<float>, ONNXHelper::Tensor<float>>;
  
 class DataPreprocessing {
  public:
@@ -53,7 +55,7 @@ class DataPreprocessing {
     PreprocessedData extract() const;
 
     std::tuple<ONNXHelper::Tensor<float>,ONNXHelper::Tensor<long>,unsigned long long> convertModelInputs(std::map<std::string, std::vector<float>> features) const;
-    ONNXHelper::Tensor<long> prepare_prop(std::vector<Shower> shower) const;
+    std::vector<ModelInputs> prepare_prop(std::vector<Shower> shower) const;
     // ONNXHelper::Tensor<long> m_inputShapes;  
 
  

@@ -153,7 +153,7 @@ struct PFHitML final:
     //the pipeline:
     //after clustering, form graphs of hits belonging to one cluster
 
-    //this function gets the clusters, within this function you can create shower instances, set x,y,z,..
+    //this function gets the clusters, within this function create shower instances, set x,y,z,..
     ShowerBuilder builder(extractor, inputs);
     auto showers = builder.buildShowers(cluster_label, outputs[0]);
     std::cout << "shower output" << showers.size() <<std::endl;
@@ -175,6 +175,8 @@ struct PFHitML final:
     //////////////////////////////////////////////////
     ////////// Inference Property Model //////////////
     //////////////////////////////////////////////////
+
+    //std::vector<std::vector<float>>  prop = m_onnx_prop->run(prop_inputs, input_shapes, batch_size);
     
 
     
@@ -218,7 +220,7 @@ struct PFHitML final:
     "Path to the ONNX clustering model"};
 
   Gaudi::Property<std::string> model_path_properties{
-    this, "model_path_properties", "/eos/user/l/lherrman/FCC/models/properties_model.onnx",
+    this, "model_path_properties", "/eos/user/l/lherrman/FCC/models/energy_correction_full.onnx",
     "Path to the ONNX model for energy regression and PID"};
   
 
