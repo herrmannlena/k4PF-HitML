@@ -139,9 +139,13 @@ struct PFHitML final:
     ////////// CLUSTERING STEP //////////
     /////////////////////////////////////
 
+    std::vector<float> node_energies = inputs_features["e_hits"];
+    const auto& track_energies = inputs_features["e_tracks"];
+    node_energies.insert(node_energies.end(), track_energies.begin(), track_energies.end());
+
     // expect output tensor of length N with cluster labels
-    Clustering clusterer(0.5, 0.2);
-    torch::Tensor cluster_label = clusterer.get_clustering(outputs[0]); //length of hits [000 3 7 7 7 7 10 2 2 2 ..]
+    Clustering clusterer(0.1f, 0.05f, 0.4f, 0.5f);
+    torch::Tensor cluster_label = clusterer.get_clustering(outputs[0], node_energies); // length of hits [000 3 7 7 7 7 10 2 2 2 ..]
 
     std::cout << "cluster output" << cluster_label.sizes() <<std::endl;
 
