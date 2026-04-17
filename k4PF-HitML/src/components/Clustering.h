@@ -10,6 +10,11 @@ public:
     torch::Tensor get_clustering(const std::vector<float>& output_vector,
                                  const std::vector<float>& energies);
 
+    torch::Tensor remove_bad_tracks_from_cluster(const torch::Tensor& labels_in,
+                                                 const std::vector<float>& hit_type,
+                                                 const std::vector<float>& e_hits,
+                                                 const std::vector<float>& p_hits);
+
 
 private:
     float d_c_;

@@ -59,8 +59,8 @@ PreprocessedData DataPreprocessing::extract() const {
     // collection of hits
     std::vector<std::pair<std::string, const edm4hep::CalorimeterHitCollection*>> hit_collections = {
         {"ECAL_BARREL", &ecalbarrel_},
-        {"HCAL_BARREL", &hcalbarrel_},
         {"ECAL_ENDCAP", &ecalendcap_},
+        {"HCAL_BARREL", &hcalbarrel_},
         {"HCAL_ENDCAP", &hcalendcap_},
         {"HCAL_OTHER",  &hcalother_},
         {"MUON",        &muons_}
@@ -157,6 +157,12 @@ PreprocessedData DataPreprocessing::extract() const {
         trackIndex += 1;
         
     }
+
+    features["node_energy"] = features["e_hits"];
+    features["node_energy"].insert(features["node_energy"].end(),features["e_tracks"].begin(),features["e_tracks"].end());
+
+    features["node_p"] = features["p_hits"];
+    features["node_p"].insert(features["node_p"].end(),features["p_tracks"].begin(),features["p_tracks"].end());
       
     return out;
   }
@@ -217,9 +223,17 @@ PreprocessedData DataPreprocessing::extract() const {
         torch::kFloat32
     ).clone();
     
-    //concatenate 
-    torch::Tensor e_feature = torch::cat({hit_e, track_e}, 0); 
-    e_feature = e_feature.unsqueeze(1);
+    torch::Tensor node_e = torch::from_blob(
+        const_cast<float*>(features.at("node_energy").data()),
+        {static_cast<long>(features.at("node_energy").size())},
+        torch::kFloat32
+    ).clone().unsqueeze(1);
+
+    torch::Tensor node_p = torch::from_blob(
+        const_cast<float*>(features.at("node_p").data()),
+        {static_cast<long>(features.at("node_p").size())},
+        torch::kFloat32
+    ).clone().unsqueeze(1);
 
     //prepare p
     torch::Tensor hit_p   = torch::from_blob(
@@ -234,9 +248,7 @@ PreprocessedData DataPreprocessing::extract() const {
         torch::kFloat32
     ).clone();
     
-    //concatenate 
-    torch::Tensor p_feature = torch::cat({hit_p, track_p}, 0); 
-    p_feature = p_feature.unsqueeze(1);
+   
  
 
     //std::cout << "pos_feature" << pos_feature.sizes()<< std::endl;
@@ -246,7 +258,7 @@ PreprocessedData DataPreprocessing::extract() const {
     //std::cout << "onehot" << hit_type_one_hot.sizes() << std::endl;
 
     //final onnx input
-    torch::Tensor h = torch::cat({pos_feature, hit_type_feature, e_feature, p_feature}, 1).to(torch::kFloat32);
+    torch::Tensor h = torch::cat({pos_feature, hit_type_feature, node_e, node_p}, 1).to(torch::kFloat32);
 
     //convert for ONNXHelper
     size_t numel = static_cast<size_t>(h.numel());

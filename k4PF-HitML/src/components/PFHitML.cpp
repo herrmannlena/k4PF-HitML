@@ -139,15 +139,19 @@ struct PFHitML final:
     ////////// CLUSTERING STEP //////////
     /////////////////////////////////////
 
-    std::vector<float> node_energies = inputs_features["e_hits"];
-    const auto& track_energies = inputs_features["e_tracks"];
-    node_energies.insert(node_energies.end(), track_energies.begin(), track_energies.end());
-
     // expect output tensor of length N with cluster labels
-    Clustering clusterer(0.1f, 0.05f, 0.4f, 0.5f);
-    torch::Tensor cluster_label = clusterer.get_clustering(outputs[0], node_energies); // length of hits [000 3 7 7 7 7 10 2 2 2 ..]
 
-    std::cout << "cluster output" << cluster_label.sizes() <<std::endl;
+
+    Clustering clusterer(0.1f, 0.05f, 0.4f, 0.5f);
+    torch::Tensor cluster_label = clusterer.get_clustering(outputs[0], inputs_features["node_energy"]); // length of hits [000 3 7 7 7 7 10 2 2 2 ..]
+
+    //cluster postprocessing
+    // error now in bad tracks from cluster, input feature as one hot?
+    torch::Tensor cluster_label_corrected = clusterer.remove_bad_tracks_from_cluster(cluster_label, inputs_features["hit_type"], inputs_features["node_energy"], inputs_features["node_p"]);
+
+    auto n_changed = (cluster_label != cluster_label_corrected).sum().item<int64_t>();
+    std::cout << "cluster output shape: " << cluster_label_corrected.sizes() << std::endl;
+    std::cout << "changed labels: " << n_changed << std::endl;
 
     //final output collection
     auto MLPF = edm4hep::ReconstructedParticleCollection();
@@ -159,7 +163,7 @@ struct PFHitML final:
 
     //this function gets the clusters, within this function create shower instances, set x,y,z,..
     ShowerBuilder builder(extractor, inputs);
-    auto showers = builder.buildShowers(cluster_label, outputs[0]);
+    auto showers = builder.buildShowers(cluster_label_corrected, outputs[0]);
     std::cout << "shower output" << showers.size() <<std::endl;
     
 

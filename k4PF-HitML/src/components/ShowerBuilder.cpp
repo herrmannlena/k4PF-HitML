@@ -73,13 +73,13 @@ std::vector<Shower> ShowerBuilder::buildShowers(const torch::Tensor& cluster_lab
             if(coll == 0){
                 hit_i = dp_.ecalBarrel().at(hidx);
             }
-            if(coll == 2){
+            if(coll == 1){
                 hit_i = dp_.ecalEndcap().at(hidx);
             }
             shower_i.addCalorimeterHit(hit_i, "ecal");
           }
           else if (htype == 3){
-            if(coll == 1){
+            if(coll == 2){
                 hit_i = dp_.hcalBarrel().at(hidx);
             }
             else if(coll == 3){

@@ -44,8 +44,8 @@ class DataPreprocessing {
  public:
     DataPreprocessing(
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
-    const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
+    const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalEndcap_hits,
     const edm4hep::CalorimeterHitCollection& HcalOther_hits,
     const edm4hep::CalorimeterHitCollection& Muon_hits,
@@ -61,8 +61,8 @@ class DataPreprocessing {
  
    // helper function to return collections
     const edm4hep::CalorimeterHitCollection& ecalBarrel()   const { return ecalbarrel_; }
-    const edm4hep::CalorimeterHitCollection& hcalBarrel()   const { return hcalbarrel_; }
     const edm4hep::CalorimeterHitCollection& ecalEndcap()   const { return ecalendcap_; }
+    const edm4hep::CalorimeterHitCollection& hcalBarrel()   const { return hcalbarrel_; }
     const edm4hep::CalorimeterHitCollection& hcalEndcap()   const { return hcalendcap_; }
     const edm4hep::CalorimeterHitCollection& hcalOther()    const { return hcalother_; }
     const edm4hep::CalorimeterHitCollection& muons()        const { return muons_; }

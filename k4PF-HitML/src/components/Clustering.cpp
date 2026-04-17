@@ -174,3 +174,61 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
 
     return torch::tensor(labels, torch::dtype(torch::kLong));
 }
+
+
+//for clustering post-processing
+torch::Tensor Clustering::remove_bad_tracks_from_cluster(
+    const torch::Tensor& labels_in,
+    const std::vector<float>& hit_type,
+    const std::vector<float>& e_hits,
+    const std::vector<float>& p_hits
+) {
+    auto labels = labels_in.clone().to(torch::kLong);
+
+    const int64_t n_nodes = labels.size(0);
+
+    if (hit_type.size() != static_cast<std::size_t>(n_nodes) ||
+        e_hits.size()    != static_cast<std::size_t>(n_nodes) ||
+        p_hits.size()    != static_cast<std::size_t>(n_nodes)) {
+        throw std::runtime_error("remove_bad_tracks_from_cluster: input sizes do not match labels");
+    }
+
+    const int64_t max_label = labels.max().item<int64_t>();
+    auto labels_acc = labels.accessor<int64_t, 1>();
+
+    for (int64_t cluster_id = 1; cluster_id <= max_label; ++cluster_id) {
+        float e_cluster = 0.0f;
+        int n_muon_hits = 0;
+        std::vector<int64_t> track_nodes;
+
+        for (int64_t node = 0; node < n_nodes; ++node) {
+            if (labels_acc[node] != cluster_id) continue;
+
+            e_cluster += e_hits[node];
+
+            if (hit_type[node] == 4) {
+                n_muon_hits++;
+            }
+            if (hit_type[node] == 1) {
+                track_nodes.push_back(node);
+            }
+        }
+
+        if (track_nodes.empty()) continue;
+
+        for (auto node : track_nodes) {
+            const float p_track = p_hits[node];
+            if (p_track <= 0.0f) continue;
+
+            const float diff = std::abs(e_cluster - p_track) / p_track;
+            const float sigma_4 = 4.0f * 0.5f / std::sqrt(p_track);
+            const bool bad_track = (diff > sigma_4) && (n_muon_hits < 1);
+
+            if (bad_track) {
+                labels_acc[node] = 0;
+            }
+        }
+    }
+
+    return labels;
+}
