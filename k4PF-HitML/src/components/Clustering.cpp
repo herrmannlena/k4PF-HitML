@@ -187,6 +187,7 @@ torch::Tensor Clustering::remove_bad_tracks_from_cluster(
 
     const int64_t n_nodes = labels.size(0);
 
+
     if (hit_type.size() != static_cast<std::size_t>(n_nodes) ||
         e_hits.size()    != static_cast<std::size_t>(n_nodes) ||
         p_hits.size()    != static_cast<std::size_t>(n_nodes)) {

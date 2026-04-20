@@ -163,6 +163,9 @@ PreprocessedData DataPreprocessing::extract() const {
 
     features["node_p"] = features["p_hits"];
     features["node_p"].insert(features["node_p"].end(),features["p_tracks"].begin(),features["p_tracks"].end());
+
+    features["hit_type"] = features["hit_type_feature_hit"];
+    features["hit_type"].insert(features["hit_type"].end(),features["hit_type_feature_track"].begin(),features["hit_type_feature_track"].end());
       
     return out;
   }
@@ -172,22 +175,6 @@ PreprocessedData DataPreprocessing::extract() const {
   std::tuple<ONNXHelper::Tensor<float>,ONNXHelper::Tensor<long>,unsigned long long>
  DataPreprocessing::convertModelInputs(std::map<std::string, std::vector<float>> features) const {
 
-    // prepare hit type
-    torch::Tensor hit_type   = torch::from_blob(
-        const_cast<float*>(features.at("hit_type_feature_hit").data()),          // pointer to data
-        {static_cast<long>(features.at("hit_type_feature_hit").size())},         // shape
-        torch::kFloat32                                                         // dtype
-    ).clone(); 
-    
-    torch::Tensor track_type = torch::from_blob(
-        const_cast<float*>(features.at("hit_type_feature_track").data()),
-        {static_cast<long>(features.at("hit_type_feature_track").size())},
-        torch::kFloat32
-    ).clone();
-    
-    //concatenate hit type features
-    torch::Tensor hit_type_feature = torch::cat({hit_type, track_type}, 0); 
-    hit_type_feature = hit_type_feature.unsqueeze(1);
 
     //one hot
     //torch::Tensor hit_type_one_hot = torch::one_hot(
@@ -247,6 +234,12 @@ PreprocessedData DataPreprocessing::extract() const {
         {static_cast<long>(features.at("p_tracks").size())},
         torch::kFloat32
     ).clone();
+
+    torch::Tensor hit_type = torch::from_blob(
+        const_cast<float*>(features.at("hit_type").data()),
+        {static_cast<long>(features.at("hit_type").size())},
+        torch::kFloat32
+    ).clone().unsqueeze(1);
     
    
  
@@ -258,7 +251,7 @@ PreprocessedData DataPreprocessing::extract() const {
     //std::cout << "onehot" << hit_type_one_hot.sizes() << std::endl;
 
     //final onnx input
-    torch::Tensor h = torch::cat({pos_feature, hit_type_feature, node_e, node_p}, 1).to(torch::kFloat32);
+    torch::Tensor h = torch::cat({pos_feature, hit_type, node_e, node_p}, 1).to(torch::kFloat32);
 
     //convert for ONNXHelper
     size_t numel = static_cast<size_t>(h.numel());
