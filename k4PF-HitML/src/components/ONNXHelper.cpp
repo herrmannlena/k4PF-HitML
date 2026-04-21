@@ -89,10 +89,18 @@
        input_dims = input_shapes[i];
      }
      // rely on the given input_shapes to set the batch size
-     if (input_dims[0] != static_cast<long>(batch_size)) {
-       throw std::runtime_error("The first element of `input_shapes` (" + std::to_string(input_dims[0]) +
-                                ") does not match the given `batch_size` (" + std::to_string(batch_size) + ")");
-     }
+     if (input_shapes.empty()) {
+        input_dims = m_inputNodeDims.at(name);
+        input_dims[0] = batch_size;
+
+        if (input_dims[0] != static_cast<long>(batch_size)) {
+            throw std::runtime_error("The first element of `input_shapes` (" + std::to_string(input_dims[0]) +
+                                 ") does not match the given `batch_size` (" + std::to_string(batch_size) + ")");
+        }
+      } else {
+        input_dims = input_shapes[i];
+      }
+
      auto expected_len = std::accumulate(input_dims.begin(), input_dims.end(), 1, std::multiplies<int64_t>());
      if (expected_len != (int64_t)value.size())
        throw std::runtime_error("Input array '" + name + "' has a wrong size of " + std::to_string(value.size()) +
@@ -142,6 +150,91 @@
  
    return outputs;
  }
+
+
+ONNXHelper::Tensor<float> ONNXHelper::runNamed(std::vector<ONNXInput>& inputs) const {
+    std::vector<Ort::Value> tensors_in;
+
+    for (const auto& expected_name : m_inputNodeStrings) {
+        auto it = std::find_if(inputs.begin(), inputs.end(),
+            [&](const ONNXInput& input) {
+                return input.name == expected_name;
+            });
+
+        if (it == inputs.end()) {
+            throw std::runtime_error("Missing ONNX input: " + expected_name);
+        }
+
+        const auto expected_len = std::accumulate(
+            it->shape.begin(), it->shape.end(), int64_t{1}, std::multiplies<int64_t>()
+        );
+
+        if (it->type == ONNXInput::Type::Float) {
+            if (expected_len != static_cast<int64_t>(it->float_data.size())) {
+                throw std::runtime_error("Wrong float input size for: " + expected_name);
+            }
+
+            tensors_in.emplace_back(
+                Ort::Value::CreateTensor<float>(
+                    m_cpu_mem_info,
+                    it->float_data.data(),
+                    it->float_data.size(),
+                    it->shape.data(),
+                    it->shape.size()
+                )
+            );
+        } else {
+            if (expected_len != static_cast<int64_t>(it->int64_data.size())) {
+                throw std::runtime_error("Wrong int64 input size for: " + expected_name);
+            }
+
+            tensors_in.emplace_back(
+                Ort::Value::CreateTensor<int64_t>(
+                    m_cpu_mem_info,
+                    it->int64_data.data(),
+                    it->int64_data.size(),
+                    it->shape.data(),
+                    it->shape.size()
+                )
+            );
+        }
+    }
+
+    std::vector<const char*> input_node_names;
+    for (const auto& name : m_inputNodeStrings) {
+        input_node_names.push_back(name.c_str());
+    }
+
+    std::vector<const char*> output_node_names;
+    for (const auto& name : m_outputNodeStrings) {
+        output_node_names.push_back(name.c_str());
+    }
+
+    auto output_tensors = m_session->Run(
+        Ort::RunOptions{nullptr},
+        input_node_names.data(),
+        tensors_in.data(),
+        tensors_in.size(),
+        output_node_names.data(),
+        output_node_names.size()
+    );
+
+    Tensor<float> outputs;
+    for (auto& output_tensor : output_tensors) {
+        if (!output_tensor.IsTensor()) {
+            throw std::runtime_error("runNamed output is not a tensor");
+        }
+
+        auto tensor_info = output_tensor.GetTensorTypeAndShapeInfo();
+        auto length = tensor_info.GetElementCount();
+        auto floatarr = output_tensor.GetTensorData<float>();
+        outputs.emplace_back(floatarr, floatarr + length);
+    }
+
+    return outputs;
+
+}
+
 
 
  static Ort::MemoryInfo CpuMemInfo() {

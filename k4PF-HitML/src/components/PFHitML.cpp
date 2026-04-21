@@ -170,6 +170,9 @@ struct PFHitML final:
     ////////////////////////////////////
     //// ENERGY REGRESSION & PID ///////
     ////////////////////////////////////
+
+     
+
     
     //look here: https://github.com/selvaggi/mlpf/blob/main/src/utils/post_clustering_features.py
     auto prop_inputs = extractor.prepare_prop(showers); //determine and convert inputs for regression model
@@ -177,22 +180,16 @@ struct PFHitML final:
     
     
 
-
-
-
     //////////////////////////////////////////////////
     ////////// Inference Property Model //////////////
     //////////////////////////////////////////////////
 
-    //std::vector<std::vector<float>>  prop = m_onnx_prop->run(prop_inputs, input_shapes, batch_size);
-    
+  // loop over showers per event
+  for (auto& shower_input : prop_inputs) {
+    auto prop_outputs = m_onnx_prop->runNamed(shower_input.inputs);
 
-    
-
-
-    
-    
-
+    std::cout << "property outputs: " << prop_outputs.size() << std::endl;
+  }
 
     return {}; // no outputs
   }

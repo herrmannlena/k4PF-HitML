@@ -33,6 +33,17 @@
  class Env;     ///< Wrapper class for the ONNX Runtime environment.
  class Session; ///< Wrapper class for ONNX Runtime session handling.
  } // namespace Ort
+
+ struct ONNXInput {
+    enum class Type { Float, Int64 };
+
+    std::string name;
+    Type type;
+    std::vector<int64_t> shape;
+    std::vector<float> float_data;
+    std::vector<int64_t> int64_data;
+};
+
  
  /**
   * @class ONNXHelper
@@ -76,7 +87,9 @@
     *
     * @return A constant reference to the vector of input names.
     */
-   const std::vector<std::string>& inputNames() const { return m_inputNames; }
+   const std::vector<std::string>& inputNames() const { return m_inputNodeStrings; }
+   const std::map<std::string, std::vector<int64_t>>& inputDims() const { return m_inputNodeDims; }
+
  
    /**
     * @brief Runs inference on the provided input tensor and returns the output tensor.
@@ -90,6 +103,8 @@
    template <typename T>
    Tensor<T> run(Tensor<T>& input_tensor, const Tensor<long>& input_shape = {},
                  unsigned long long batch_size = 1ull) const;
+
+  Tensor<float> runNamed(std::vector<ONNXInput>& inputs) const;
 
   static Ort::MemoryInfo CpuMemInfo();
  

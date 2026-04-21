@@ -276,15 +276,26 @@ PreprocessedData DataPreprocessing::extract() const {
 
   }
 
-  
-
+ 
+  static std::vector<float> flatten_points(const std::vector<float>& x,
+                                  const std::vector<float>& y,
+                                  const std::vector<float>& z) {
+    std::vector<float> out;
+    out.reserve(x.size() * 3);
+    for (size_t i = 0; i < x.size(); ++i) {
+        out.push_back(x[i]);
+        out.push_back(y[i]);
+        out.push_back(z[i]);
+    }
+    return out;
+}
   
 
   //prepare the inputs for energy regression and PID, return node and global features
-  std::vector<ModelInputs> DataPreprocessing::prepare_prop(std::vector<Shower> showers) const {
+  std::vector<PropertyInputs> DataPreprocessing::prepare_prop(std::vector<Shower> showers) const {
     
     //loop over showers   
-    std::vector<ModelInputs> out;
+    std::vector<PropertyInputs> out;
     out.reserve(showers.size());
 
     for (auto& shower_i : showers) {
@@ -366,7 +377,7 @@ PreprocessedData DataPreprocessing::extract() const {
 
         global_features.push_back(ECAL_e_fraction); //0
         global_features.push_back(HCAL_e_fraction); //1
-        global_features.push_back(static_cast<float>(num_hits)); //2
+        global_features.push_back(static_cast<float>(total_hits)); //2
         global_features.push_back(track_p); //3
         global_features.push_back(dispersion_ecal); //4
         global_features.push_back(dispersion_hcal); //5
@@ -381,9 +392,9 @@ PreprocessedData DataPreprocessing::extract() const {
         global_features.push_back(eta); //14
         global_features.push_back(phi); //15
 
-        ONNXHelper::Tensor<float> g_tensor;
-        g_tensor.reserve(1);
-        g_tensor.push_back(global_features);
+        //ONNXHelper::Tensor<float> g_tensor;
+        //g_tensor.reserve(1);
+        //g_tensor.push_back(global_features);
       
         
 
@@ -393,9 +404,73 @@ PreprocessedData DataPreprocessing::extract() const {
         //some other transformations?
 
         //right order?
-        out.emplace_back(std::move(node_features), std::move(g_tensor));
+        //out.emplace_back(std::move(node_features), std::move(g_tensor));
 
-        
+     
+
+        PropertyInputs packed;
+        std::vector<float> hits_points = flatten_points(pos_x, pos_y, pos_z);
+        const long n_nodes = static_cast<long>(pos_x.size());
+        if (n_nodes == 0) {
+            continue;
+        }
+
+        std::vector<int64_t> hit_type;
+        hit_type.reserve(shower_i.types_.size());
+        for (int t : shower_i.types_) {
+            hit_type.push_back(static_cast<int64_t>(t));
+        }
+
+        packed.inputs.push_back(ONNXInput{
+            "hits_points",
+            ONNXInput::Type::Float,
+            {n_nodes, 3},
+            std::move(hits_points),
+            {}
+        });
+
+        packed.inputs.push_back(ONNXInput{
+            "hit_type",
+            ONNXInput::Type::Int64,
+            {n_nodes},
+            {},
+            std::move(hit_type)
+        });
+
+        packed.inputs.push_back(ONNXInput{
+            "betas",
+            ONNXInput::Type::Float,
+            {n_nodes},
+            betas,
+            {}
+        });
+
+        packed.inputs.push_back(ONNXInput{
+            "p",
+            ONNXInput::Type::Float,
+            {n_nodes},
+            p_vector,
+            {}
+        });
+
+        packed.inputs.push_back(ONNXInput{
+            "e",
+            ONNXInput::Type::Float,
+            {n_nodes},
+            e_vector,
+            {}
+        });
+
+        packed.inputs.push_back(ONNXInput{
+            "x_global_features",
+            ONNXInput::Type::Float,
+            {1, static_cast<int64_t>(global_features.size())},
+            global_features,
+            {}
+        });
+
+        out.push_back(std::move(packed));
+
 
     }
 

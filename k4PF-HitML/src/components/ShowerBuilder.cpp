@@ -22,11 +22,14 @@ std::vector<Shower> ShowerBuilder::buildShowers(const torch::Tensor& cluster_lab
     auto uniqueView = uniqueTensor.accessor<int64_t, 1>();
   
     std::cout << "num particles" << num_part <<std::endl;
-    std::vector<Shower> showers(num_part);
+    std::vector<Shower> showers;
    
     for (int64_t i = 0; i < num_part; ++i) {
   
       int64_t label = uniqueView[i];
+      if (label == 0) {
+        continue;
+      }
   
       // Create a PF shower object
       //auto pf = MLPF.create();
@@ -46,7 +49,8 @@ std::vector<Shower> ShowerBuilder::buildShowers(const torch::Tensor& cluster_lab
       // I think I would fill all of this in a shower class and in the end if all values are fixed and assigned pass and fill to MLPF object
       
       //shower object
-      Shower& shower_i = showers[i];
+      showers.emplace_back();
+      Shower& shower_i = showers.back();
      
       for (int64_t j = 0; j < indices.size(0); ++j) {
   
