@@ -23,6 +23,8 @@
  #include <algorithm>
  #include <numeric>
  #include <iostream>
+ #include <sstream>
+
 
 
  //taken from https://github.com/key4hep/k4MLJetTagger/blob/main/k4MLJetTagger/src/components/ONNXRuntime.h
@@ -50,6 +52,17 @@
      // get input shapes
      const auto nodeInfo = m_session->GetInputTypeInfo(i);
      m_inputNodeDims[input_name] = nodeInfo.GetTensorTypeAndShapeInfo().GetShape();
+
+     //for debugging only
+     std::cout << "[ONNXHelper] Input " << i << ": " << input_name << " shape=[";
+     for (size_t d = 0; d < m_inputNodeDims[input_name].size(); ++d) {
+        std::cout << m_inputNodeDims[input_name][d];
+        if (d + 1 != m_inputNodeDims[input_name].size()) {
+          std::cout << ", ";
+        }
+      }
+     std::cout << "]" << std::endl;
+
    }
  
    // Get output names and shapes
@@ -66,6 +79,17 @@
  
      // the 0th dim depends on the batch size
      m_outputNodeDims[output_name].at(0) = -1;
+
+     //for debugging
+     std::cout << "[ONNXHelper] Output " << i << ": " << output_name << " shape=[";
+      for (size_t d = 0; d < m_outputNodeDims[output_name].size(); ++d) {
+        std::cout << m_outputNodeDims[output_name][d];
+        if (d + 1 != m_outputNodeDims[output_name].size()) {
+          std::cout << ", ";
+        }
+      }
+    std::cout << "]" << std::endl;
+
    }
  }
  
@@ -76,8 +100,20 @@
                                          unsigned long long batch_size) const {
    std::vector<Ort::Value> tensors_in;
    if (input.size() != m_inputNodeStrings.size()) {
-      throw std::runtime_error("Number of provided inputs does not match model inputs");
-   }
+  std::ostringstream msg;
+  msg << "Number of provided inputs does not match model inputs. Provided "
+      << input.size() << ", model expects " << m_inputNodeStrings.size() << ".";
+  if (!m_inputNodeStrings.empty()) {
+    msg << " Model inputs: ";
+    for (size_t i = 0; i < m_inputNodeStrings.size(); ++i) {
+      msg << m_inputNodeStrings[i];
+      if (i + 1 != m_inputNodeStrings.size()) {
+        msg << ", ";
+      }
+    }
+    }
+    throw std::runtime_error(msg.str());
+  }
    for (std::size_t i = 0; i < m_inputNodeStrings.size(); ++i) {
      const auto& name = m_inputNodeStrings[i];
      auto& value = input[i];

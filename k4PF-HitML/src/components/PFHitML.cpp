@@ -120,7 +120,40 @@ struct PFHitML final:
     auto inputs = extractor.extract();
     auto inputs_features = inputs.features;
     //convert inputs to expected shape 
-    auto [inputs_onnx, input_shapes, batch_size] = extractor.convertModelInputs(inputs_features);
+    auto clustering_input = extractor.convertModelInputs(inputs_features);
+
+    //debugging
+    info() << "Prepared " << clustering_input.inputs.size()
+       << " ONNX input tensor(s) for batch size "
+       << clustering_input.batch_size << endmsg;
+
+    for (size_t i = 0; i < clustering_input.inputs.size(); ++i) {
+        const auto& inp = clustering_input.inputs[i];
+
+        std::ostringstream shape_msg;
+        shape_msg << "Input tensor " << i
+                  << " name=" << inp.name
+                  << " shape=[";
+
+        for (size_t j = 0; j < inp.shape.size(); ++j) {
+            shape_msg << inp.shape[j];
+            if (j + 1 != inp.shape.size()) {
+                shape_msg << ", ";
+            }
+        }
+
+        shape_msg << "] type="
+                  << (inp.type == ONNXInput::Type::Float ? "float" : "int64");
+
+        if (inp.type == ONNXInput::Type::Float) {
+            shape_msg << " values=" << inp.float_data.size();
+        } else {
+            shape_msg << " values=" << inp.int64_data.size();
+        }
+
+        info() << shape_msg.str() << endmsg;
+    }
+
 
 
     ///////////////////////////////////////////////////
@@ -128,7 +161,7 @@ struct PFHitML final:
     ///////////////////////////////////////////////////
 
     
-    std::vector<std::vector<float>>  outputs = m_onnx->run(inputs_onnx, input_shapes, batch_size);
+    std::vector<std::vector<float>>  outputs = m_onnx->runNamed(clustering_input.inputs);
 
     //std::cout << "output" << outputs[0][0] <<"" << outputs[0][1]  << "size" << outputs[0].size()<<std::endl;
     //get two outputs, first one has shape (N,4) (three coordinates in embedding space + beta)
@@ -178,7 +211,8 @@ struct PFHitML final:
     auto prop_inputs = extractor.prepare_prop(showers); //determine and convert inputs for regression model
 
     
-    
+    //STILL NEED TO SEPERATE NEUTRAL CHARGED! THIS IS ALSO AN OLD MODEL.. NOW I have two sepertae ones so convert them first
+    // before further updating stuff..
 
     //////////////////////////////////////////////////
     ////////// Inference Property Model //////////////
@@ -189,7 +223,26 @@ struct PFHitML final:
     auto prop_outputs = m_onnx_prop->runNamed(shower_input.inputs);
 
     std::cout << "property outputs: " << prop_outputs.size() << std::endl;
+    for (size_t i = 0; i < prop_outputs.size(); ++i) {
+        std::cout << "  output[" << i << "] name="
+                  << m_onnx_prop->outputNames().at(i)
+                  << " length=" << prop_outputs[i].size()
+                  << std::endl;
+    }
   }
+  
+  //debug
+  std::cout << "Property model outputs: "
+          << m_onnx_prop->outputNames().size() << std::endl;
+
+  for (const auto& name : m_onnx_prop->outputNames()) {
+    std::cout << "output: " << name << " dims:";
+    for (auto d : m_onnx_prop->outputDims().at(name)) {
+        std::cout << " " << d;
+    }
+    std::cout << std::endl;
+  }
+
 
     return {}; // no outputs
   }

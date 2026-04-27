@@ -89,6 +89,11 @@
     */
    const std::vector<std::string>& inputNames() const { return m_inputNodeStrings; }
    const std::map<std::string, std::vector<int64_t>>& inputDims() const { return m_inputNodeDims; }
+  
+   //same for output
+   const std::vector<std::string>& outputNames() const { return m_outputNodeStrings; }
+   const std::map<std::string, std::vector<int64_t>>& outputDims() const { return m_outputNodeDims; }
+
 
  
    /**

@@ -38,6 +38,11 @@ struct PreprocessedData {
    std::vector<std::array<int64_t,3>> hit_mapping;  
 };
 
+struct ClusteringInputs {
+    std::vector<ONNXInput> inputs;
+    unsigned long long batch_size;
+};
+
 struct PropertyInputs {
    std::vector<ONNXInput> inputs;
 };
@@ -56,7 +61,8 @@ class DataPreprocessing {
 
     PreprocessedData extract() const;
 
-    std::tuple<ONNXHelper::Tensor<float>,ONNXHelper::Tensor<long>,unsigned long long> convertModelInputs(std::map<std::string, std::vector<float>> features) const;
+    
+    ClusteringInputs convertModelInputs(std::map<std::string, std::vector<float>> features) const;
     std::vector<PropertyInputs> prepare_prop(std::vector<Shower> shower) const;
     // ONNXHelper::Tensor<long> m_inputShapes;  
 

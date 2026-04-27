@@ -34,6 +34,8 @@
 #include <torch/torch.h>
 #include "ONNXHelper.h"  
 
+
+
 DataPreprocessing::DataPreprocessing(
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
@@ -172,8 +174,8 @@ PreprocessedData DataPreprocessing::extract() const {
 
 
   //this is not the correct type for ONNX helper.. try alternative
-  std::tuple<ONNXHelper::Tensor<float>,ONNXHelper::Tensor<long>,unsigned long long>
- DataPreprocessing::convertModelInputs(std::map<std::string, std::vector<float>> features) const {
+
+ ClusteringInputs DataPreprocessing::convertModelInputs(std::map<std::string, std::vector<float>> features) const {
 
 
     //one hot
@@ -181,6 +183,8 @@ PreprocessedData DataPreprocessing::extract() const {
     //    hit_type_feature.to(torch::kInt64), // input tensor of integer class indices
     //    /* num_classes = */ 5
     //).to(torch::kFloat32); 
+
+    ClusteringInputs packed;
     
 
     // prepare position 
@@ -193,6 +197,8 @@ PreprocessedData DataPreprocessing::extract() const {
     std::size_t N_tracks = pos_tracks_flat.size() / 3;
                            
     torch::Tensor pos_tracks = torch::tensor(pos_tracks_flat, torch::kFloat32).reshape({static_cast<long>(N_tracks), 3});
+
+    const long n_nodes = static_cast<long>(N + N_tracks);
   
     //concatenate pos features
     torch::Tensor pos_feature = torch::cat({pos_hits, pos_tracks}, 0); 
@@ -235,11 +241,24 @@ PreprocessedData DataPreprocessing::extract() const {
         torch::kFloat32
     ).clone();
 
+    /*
     torch::Tensor hit_type = torch::from_blob(
         const_cast<float*>(features.at("hit_type").data()),
         {static_cast<long>(features.at("hit_type").size())},
         torch::kFloat32
     ).clone().unsqueeze(1);
+    */
+
+    torch::Tensor hit_type_feature = torch::from_blob(
+    const_cast<float*>(features.at("hit_type").data()),
+    {static_cast<long>(features.at("hit_type").size())},
+    torch::kFloat32
+    ).clone();
+
+    torch::Tensor hit_type_one_hot = torch::one_hot(
+    hit_type_feature.to(torch::kInt64), 5
+    ).to(torch::kFloat32);
+
     
    
  
@@ -251,8 +270,10 @@ PreprocessedData DataPreprocessing::extract() const {
     //std::cout << "onehot" << hit_type_one_hot.sizes() << std::endl;
 
     //final onnx input
-    torch::Tensor h = torch::cat({pos_feature, hit_type, node_e, node_p}, 1).to(torch::kFloat32);
+    //torch::Tensor h = torch::cat({pos_feature, hit_type, node_e, node_p}, 1).to(torch::kFloat32);
+    torch::Tensor h_scalar = torch::cat({pos_feature, hit_type_one_hot, node_e, node_p}, 1).to(torch::kFloat32);
 
+    /*
     //convert for ONNXHelper
     size_t numel = static_cast<size_t>(h.numel());
     std::vector<float> flat(numel);
@@ -267,12 +288,61 @@ PreprocessedData DataPreprocessing::extract() const {
     input_shapes.back().push_back(h.size(1));
 
 
-    //m_inputShapes = { std::vector<long>(h.sizes().begin(), h.sizes().end()) };
-     
-    //std::cout << "m_inputShapes" << m_inputShapes[0][0] << std::endl;
-    //std::cout << "m_inputShapes" << m_inputShapes[0][1] << std::endl;
   
     return {input_tensor, input_shapes, h.size(0)};
+    */
+
+
+    // input 0: pos_hits_xyz  [N, 3]
+    {
+        size_t numel = static_cast<size_t>(pos_feature.numel());
+        std::vector<float> flat(numel);
+        std::memcpy(flat.data(), pos_feature.data_ptr<float>(), numel * sizeof(float));
+        packed.inputs.push_back(ONNXInput{
+            "pos_hits_xyz",
+            ONNXInput::Type::Float,
+            std::vector<long>{n_nodes, 3},
+            std::move(flat),
+            {}
+        });
+    }
+
+    // input 1: hit_type [N]
+    {
+        std::vector<int64_t> hit_type;
+        hit_type.reserve(features.at("hit_type").size());
+
+        for (float t : features.at("hit_type")) {
+            hit_type.push_back(static_cast<int64_t>(t));
+        }
+
+        packed.inputs.push_back(ONNXInput{
+            "hit_type",
+            ONNXInput::Type::Int64,
+            std::vector<long>{n_nodes},
+            {},
+            std::move(hit_type)
+        });
+    }
+
+    // input 2: h_scalar  [N, 10]
+    {
+        size_t numel = static_cast<size_t>(h_scalar.numel());
+        std::vector<float> flat(numel);
+        std::memcpy(flat.data(), h_scalar.data_ptr<float>(), numel * sizeof(float));
+        packed.inputs.push_back(ONNXInput{
+            "h_scalar",
+            ONNXInput::Type::Float,
+            std::vector<long>{n_nodes, 10},
+            std::move(flat),
+            {}
+        });
+    }
+
+    packed.batch_size = static_cast<unsigned long long>(n_nodes);
+
+    return packed;
+
 
   }
 
