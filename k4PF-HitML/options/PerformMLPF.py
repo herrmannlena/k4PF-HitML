@@ -32,8 +32,9 @@ parser_group.add_argument("--inputFiles", nargs="+", metavar=("file1", "file2"),
 parser_group.add_argument("--num_ev", type=int, help="Number of events to process (-1 means all)", default=-1)
 #parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model used for clustering", default="/eos/user/l/lherrman/FCC/models/clustering_model_Hss.onnx")
 parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model used for clustering", default="/eos/user/l/lherrman/FCC/models/clustering_paper.onnx")
-parser_group.add_argument("--onnx_model_properties", help="Path to ONNX model used for energy regression and PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_full.onnx")
-
+#parser_group.add_argument("--onnx_model_properties", help="Path to ONNX model used for energy regression and PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_full.onnx")
+parser_group.add_argument("--onnx_model_properties_neutral", help="Path to neutral ONNX model used for energy regression and PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_paper_neutral.onnx")
+parser_group.add_argument("--onnx_model_properties_charged", help="Path to charged ONNX model used for PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_paper_charged_pid.onnx")
 
 args = parser.parse_known_args()[0]
 
@@ -43,7 +44,8 @@ svc.Input = args.inputFiles
 
 Multitransformer = PFHitML("PFHitML",
                             model_path_clustering=args.onnx_model_clustering,
-                            model_path_properties=args.onnx_model_properties
+                            model_path_properties_neutral=args.onnx_model_properties_neutral,
+                            model_path_properties_charged=args.onnx_model_properties_charged,
                     )
 
 ApplicationMgr(TopAlg=[Multitransformer],

@@ -220,12 +220,12 @@ struct PFHitML final:
 
   // loop over showers per event
   for (auto& shower_input : prop_inputs) {
-    auto prop_outputs = m_onnx_prop->runNamed(shower_input.inputs);
+    auto prop_outputs = m_onnx_prop_neutral->runNamed(shower_input.inputs);
 
     std::cout << "property outputs: " << prop_outputs.size() << std::endl;
     for (size_t i = 0; i < prop_outputs.size(); ++i) {
         std::cout << "  output[" << i << "] name="
-                  << m_onnx_prop->outputNames().at(i)
+                  << m_onnx_prop_neutral->outputNames().at(i)
                   << " length=" << prop_outputs[i].size()
                   << std::endl;
     }
@@ -233,11 +233,11 @@ struct PFHitML final:
   
   //debug
   std::cout << "Property model outputs: "
-          << m_onnx_prop->outputNames().size() << std::endl;
+          << m_onnx_prop_neutral->outputNames().size() << std::endl;
 
-  for (const auto& name : m_onnx_prop->outputNames()) {
+  for (const auto& name : m_onnx_prop_neutral->outputNames()) {
     std::cout << "output: " << name << " dims:";
-    for (auto d : m_onnx_prop->outputDims().at(name)) {
+    for (auto d : m_onnx_prop_neutral->outputDims().at(name)) {
         std::cout << " " << d;
     }
     std::cout << std::endl;
@@ -254,7 +254,9 @@ struct PFHitML final:
     //fix input names, can you get rid of it?
     m_onnx = std::make_unique<ONNXHelper>(model_path_clustering.value());
 
-    m_onnx_prop = std::make_unique<ONNXHelper>(model_path_properties.value());
+    m_onnx_prop_neutral = std::make_unique<ONNXHelper>(model_path_properties_neutral.value());
+
+    m_onnx_prop_charged = std::make_unique<ONNXHelper>(model_path_properties_charged.value());
 
 
     
@@ -270,16 +272,21 @@ struct PFHitML final:
   
 
   std::unique_ptr<ONNXHelper> m_onnx;
-  std::unique_ptr<ONNXHelper> m_onnx_prop;
+  std::unique_ptr<ONNXHelper> m_onnx_prop_neutral;
+  std::unique_ptr<ONNXHelper> m_onnx_prop_charged;
   rv::RVec<std::string> vars;
 
   Gaudi::Property<std::string> model_path_clustering{
     this, "model_path_clustering", "/eos/user/l/lherrman/FCC/models/clustering_truth_update.onnx",
     "Path to the ONNX clustering model"};
 
-  Gaudi::Property<std::string> model_path_properties{
-    this, "model_path_properties", "/eos/user/l/lherrman/FCC/models/energy_correction_full.onnx",
-    "Path to the ONNX model for energy regression and PID"};
+  Gaudi::Property<std::string> model_path_properties_neutral{
+    this, "model_path_properties_neutral", "/eos/user/l/lherrman/FCC/models/energy_correction_paper_neutral.onnx",
+    "Path to the ONNX model for neutral energy regression and PID"};
+
+  Gaudi::Property<std::string> model_path_properties_charged{
+    this, "model_path_properties_charged", "/eos/user/l/lherrman/FCC/models/energy_correction_paper_charged_pid.onnx",
+    "Path to the ONNX model for charged energy regression and PID"};
   
 
 
