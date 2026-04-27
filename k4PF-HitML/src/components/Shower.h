@@ -21,6 +21,7 @@ public:
         betas_.push_back(beta);
     }
 
+
     const std::vector<edm4hep::CalorimeterHit>& getCalorimeterHits() const {
         return caloHits_;
     }
@@ -53,6 +54,13 @@ public:
 
     
 };
+
+struct ShowerSplit {
+  std::vector<size_t> charged;
+  std::vector<size_t> neutral;
+};
+
+ShowerSplit splitShowersByTrackContent(const std::vector<Shower>& showers);
 
 
 #endif // SHOWER_H

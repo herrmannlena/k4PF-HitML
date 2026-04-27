@@ -19,6 +19,7 @@
 
  #include "k4FWCore/Transformer.h"
  #include "edm4hep/MCParticleCollection.h"
+ #include "edm4hep/ParticleIDCollection.h"
  #include <string>
 
 
@@ -52,7 +53,10 @@ namespace rv = ROOT::VecOps;
 
 struct PFHitML final:
    k4FWCore::MultiTransformer<
-   std::tuple<>(
+      std::tuple<
+      edm4hep::ReconstructedParticleCollection,
+      edm4hep::ParticleIDCollection
+      >(
 
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
@@ -66,7 +70,10 @@ struct PFHitML final:
 
     PFHitML(const std::string& name, ISvcLocator* svcLoc)
       : k4FWCore::MultiTransformer<
-      std::tuple<>(
+      std::tuple<
+      edm4hep::ReconstructedParticleCollection,
+      edm4hep::ParticleIDCollection
+      > (
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
@@ -84,11 +91,16 @@ struct PFHitML final:
             KeyValues("MUON", {"MUON"}),
             KeyValues("Tracks", {"SiTracks_Refitted"})
           },
-          {}  // no Outputs
+          {
+            KeyValues("PFParticles", {"PFParticles"}),
+            KeyValues("PFParticleIDs", {"PFParticleIDs"})}  // Outputs
         ) {}
 
   // main
-  std::tuple<> operator()(
+  std::tuple<
+  edm4hep::ReconstructedParticleCollection,
+  edm4hep::ParticleIDCollection
+  > operator()(
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& EcalEndcap_hits,
@@ -198,6 +210,12 @@ struct PFHitML final:
     ShowerBuilder builder(extractor, inputs);
     auto showers = builder.buildShowers(cluster_label_corrected, outputs[0]);
     std::cout << "shower output" << showers.size() <<std::endl;
+
+    auto split = splitShowersByTrackContent(showers);
+
+    info() << "Number of charged showers: " << split.charged.size() << endmsg;
+    info() << "Number of neutral showers: " << split.neutral.size() << endmsg;
+
     
 
     ////////////////////////////////////
@@ -243,8 +261,13 @@ struct PFHitML final:
     std::cout << std::endl;
   }
 
+  auto pfParticles = edm4hep::ReconstructedParticleCollection{};
+  auto pfParticleIDs = edm4hep::ParticleIDCollection{};
 
-    return {}; // no outputs
+  // fill them
+
+  return {std::move(pfParticles), std::move(pfParticleIDs)};  //outputs
+
   }
 
   StatusCode initialize() override {

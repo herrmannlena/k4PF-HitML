@@ -1,5 +1,20 @@
 #include "Shower.h"
 
+
+
+ShowerSplit splitShowersByTrackContent(const std::vector<Shower>& showers) {
+  ShowerSplit out;
+  for (size_t i = 0; i < showers.size(); ++i) {
+    if (showers[i].getTracks().empty()) {
+      out.neutral.push_back(i);
+    } else {
+      out.charged.push_back(i);
+    }
+  }
+  return out;
+}
+
+
 const std::pair<float, float> Shower::getCaloEnergy(std::vector<edm4hep::CalorimeterHit> collection){
 
     float sum_e = 0;
