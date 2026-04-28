@@ -22,13 +22,15 @@ from Gaudi.Configuration import INFO
 from k4FWCore import ApplicationMgr, IOSvc
 from k4FWCore.parseArgs import parser
 
+
+
 # parse the custom arguments
 parser_group = parser.add_argument_group("PerformMLPF.py custom options")
 parser_group.add_argument("--inputFiles", nargs="+", metavar=("file1", "file2"), help="One or multiple input files",
                           default=["/eos/user/l/lherrman/FCC/datageneration/condor/10/out_reco_edm4hep_REC.edm4hep.root"])
                           #this is Dolores model Hss, adapt the default input file
                        # default=["/afs/cern.ch/work/l/lherrman/private/inference/data/Hss_rec_16809_40.root"])
-#parser_group.add_argument("--outputFile", help="Output file name", default="output_MLPF.root")
+parser_group.add_argument("--outputFile", default="output_HitPF.root")
 parser_group.add_argument("--num_ev", type=int, help="Number of events to process (-1 means all)", default=-1)
 #parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model used for clustering", default="/eos/user/l/lherrman/FCC/models/clustering_model_Hss.onnx")
 parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model used for clustering", default="/eos/user/l/lherrman/FCC/models/clustering_paper.onnx")
@@ -40,7 +42,8 @@ args = parser.parse_known_args()[0]
 
 svc = IOSvc("IOSvc")
 svc.Input = args.inputFiles
-#svc.Output = args.outputFile
+svc.Output = args.outputFile  
+
 
 Multitransformer = PFHitML("PFHitML",
                             model_path_clustering=args.onnx_model_clustering,
@@ -48,10 +51,14 @@ Multitransformer = PFHitML("PFHitML",
                             model_path_properties_charged=args.onnx_model_properties_charged,
                     )
 
+
+svc.outputCommands = ["keep *"]
+
 ApplicationMgr(TopAlg=[Multitransformer],
                EvtSel="NONE",
                EvtMax=args.num_ev,
-               ExtSvc=[k4DataSvc("EventDataSvc")],
+               #ExtSvc=[k4DataSvc("EventDataSvc")],
+               ExtSvc=[svc],
                OutputLevel=INFO,
                )
 

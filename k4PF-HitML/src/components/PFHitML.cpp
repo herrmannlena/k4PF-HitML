@@ -93,8 +93,8 @@ struct PFHitML final:
             KeyValues("Tracks", {"SiTracks_Refitted"})
           },
           {
-            KeyValues("PFParticles", {"PFParticles"}),
-            KeyValues("PFParticleIDs", {"PFParticleIDs"})}  // Outputs
+            KeyValues("HitPF", {"HitPF"}),
+            KeyValues("HitPFIDs", {"HitPFIDs"})}  // Outputs
         ) {}
 
   // main
@@ -240,8 +240,8 @@ struct PFHitML final:
   const std::vector<int> chargedClassMap = {0, 1, 4};
   const std::vector<int> neutralClassMap = {2, 3};
 
-  auto pfParticles = edm4hep::ReconstructedParticleCollection{};
-  auto pfParticleIDs = edm4hep::ParticleIDCollection{};
+  auto HitPF = edm4hep::ReconstructedParticleCollection{};
+  auto HitPFIDs = edm4hep::ParticleIDCollection{};
 
   // loop over showers per event
     for (size_t idx : split.charged) {
@@ -251,11 +251,11 @@ struct PFHitML final:
 
     ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score);
 
-    fillRecoParticle(pfParticles, pfParticleIDs, showers[idx], recoInfo);
+    fillRecoParticle(HitPF, HitPFIDs, showers[idx], recoInfo);
     
   }
 
-  
+
   for (size_t idx : split.neutral) {
     auto prop_outputs = m_onnx_prop_neutral->runNamed(prop_inputs[idx].inputs);
     const auto& pidLogits = findPIDOutput(*m_onnx_prop_neutral, prop_outputs);
@@ -267,13 +267,13 @@ struct PFHitML final:
 
     ParticleRecoInfo recoInfo = buildNeutralRecoInfo(showers[idx], pid.physicsClass, pid.score, predictedEnergy, predictedDirection, predictedReferencePoint);
 
-    fillRecoParticle(pfParticles, pfParticleIDs, showers[idx], recoInfo);
+    fillRecoParticle(HitPF, HitPFIDs, showers[idx], recoInfo);
 
   }
     
 
 
-  return {std::move(pfParticles), std::move(pfParticleIDs)};  //outputs
+  return {std::move(HitPF), std::move(HitPFIDs)};  //outputs
 
   }
 
