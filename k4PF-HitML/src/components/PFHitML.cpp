@@ -35,6 +35,7 @@
 #include "Helpers.h"  
 #include "ShowerBuilder.h"
 #include "Shower.h"
+#include "PFParticleBuilder.h"
 #include "ROOT/RVec.hxx"
 #include <nlohmann/json.hpp> 
 
@@ -236,35 +237,41 @@ struct PFHitML final:
     ////////// Inference Property Model //////////////
     //////////////////////////////////////////////////
 
-  // loop over showers per event
-  for (auto& shower_input : prop_inputs) {
-    auto prop_outputs = m_onnx_prop_neutral->runNamed(shower_input.inputs);
-
-    std::cout << "property outputs: " << prop_outputs.size() << std::endl;
-    for (size_t i = 0; i < prop_outputs.size(); ++i) {
-        std::cout << "  output[" << i << "] name="
-                  << m_onnx_prop_neutral->outputNames().at(i)
-                  << " length=" << prop_outputs[i].size()
-                  << std::endl;
-    }
-  }
-  
-  //debug
-  std::cout << "Property model outputs: "
-          << m_onnx_prop_neutral->outputNames().size() << std::endl;
-
-  for (const auto& name : m_onnx_prop_neutral->outputNames()) {
-    std::cout << "output: " << name << " dims:";
-    for (auto d : m_onnx_prop_neutral->outputDims().at(name)) {
-        std::cout << " " << d;
-    }
-    std::cout << std::endl;
-  }
+  const std::vector<int> chargedClassMap = {0, 1, 4};
+  const std::vector<int> neutralClassMap = {2, 3};
 
   auto pfParticles = edm4hep::ReconstructedParticleCollection{};
   auto pfParticleIDs = edm4hep::ParticleIDCollection{};
 
-  // fill them
+  // loop over showers per event
+    for (size_t idx : split.charged) {
+    auto prop_outputs = m_onnx_prop_charged->runNamed(prop_inputs[idx].inputs);
+    const auto& pidLogits = findPIDOutput(*m_onnx_prop_charged, prop_outputs);
+    PIDPrediction pid = decodePIDLogits(pidLogits, chargedClassMap);
+
+    ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score);
+
+    fillRecoParticle(pfParticles, pfParticleIDs, showers[idx], recoInfo);
+    
+  }
+
+  
+  for (size_t idx : split.neutral) {
+    auto prop_outputs = m_onnx_prop_neutral->runNamed(prop_inputs[idx].inputs);
+    const auto& pidLogits = findPIDOutput(*m_onnx_prop_neutral, prop_outputs);
+    PIDPrediction pid = decodePIDLogits(pidLogits, neutralClassMap);
+    float predictedEnergy = prop_outputs[0].at(0);
+    edm4hep::Vector3f predictedReferencePoint = computeNeutralReferencePoint(showers[idx]);
+    edm4hep::Vector3f predictedDirection = computeNeutralDirection(predictedReferencePoint);
+
+
+    ParticleRecoInfo recoInfo = buildNeutralRecoInfo(showers[idx], pid.physicsClass, pid.score, predictedEnergy, predictedDirection, predictedReferencePoint);
+
+    fillRecoParticle(pfParticles, pfParticleIDs, showers[idx], recoInfo);
+
+  }
+    
+
 
   return {std::move(pfParticles), std::move(pfParticleIDs)};  //outputs
 
