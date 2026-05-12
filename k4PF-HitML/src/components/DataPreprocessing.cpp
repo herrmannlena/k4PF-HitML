@@ -258,6 +258,26 @@ PreprocessedData DataPreprocessing::extract() const {
     torch::Tensor hit_type_one_hot = torch::one_hot(
     hit_type_feature.to(torch::kInt64), 5
     ).to(torch::kFloat32);
+ 
+    
+    //debug
+    torch::Tensor inputs = pos_feature;
+    torch::Tensor inputs_scalar = hit_type_feature.unsqueeze(1);
+    torch::Tensor scalars = torch::cat({node_e, node_p}, 1);
+
+    std::cout << "inputs " << inputs.sizes() << std::endl;
+    std::cout << inputs.slice(0, 0, std::min<int64_t>(5, inputs.size(0))) << std::endl;
+    std::cout << inputs.slice(0, std::max<int64_t>(0, inputs.size(0) - 5), inputs.size(0)) << std::endl;
+
+    std::cout << "inputs_scalar " << inputs_scalar.sizes() << std::endl;
+    std::cout << inputs_scalar.slice(0, 0, std::min<int64_t>(5, inputs_scalar.size(0))) << std::endl;
+    std::cout << inputs_scalar.slice(0, std::max<int64_t>(0, inputs_scalar.size(0) - 5), inputs_scalar.size(0)) << std::endl;
+
+    std::cout << "scalars " << scalars.sizes() << std::endl;
+    std::cout << scalars.slice(0, 0, std::min<int64_t>(5, scalars.size(0))) << std::endl;
+    std::cout << scalars.slice(0, std::max<int64_t>(0, scalars.size(0) - 5), scalars.size(0)) << std::endl;
+
+
 
     
    
@@ -461,6 +481,12 @@ PreprocessedData DataPreprocessing::extract() const {
         global_features.push_back(mean_z); //13
         global_features.push_back(eta); //14
         global_features.push_back(phi); //15
+
+        for (auto& value : global_features) {
+            if (!std::isfinite(value)) {
+            value = 0.0f;
+            }
+        }
 
         //ONNXHelper::Tensor<float> g_tensor;
         //g_tensor.reserve(1);

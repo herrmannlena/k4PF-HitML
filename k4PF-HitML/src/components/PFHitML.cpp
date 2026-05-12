@@ -28,6 +28,10 @@
 #include "edm4hep/TrackCollection.h"
 #include "edm4hep/ReconstructedParticleCollection.h"
 #include "edm4hep/CalorimeterHitCollection.h"
+#include "edm4hep/RecoMCParticleLinkCollection.h"
+#include "edm4hep/CaloHitMCParticleLinkCollection.h"
+#include "edm4hep/TrackMCParticleLinkCollection.h"
+
 
 //others
 #include "DataPreprocessing.h"
@@ -38,13 +42,21 @@
 #include "PFParticleBuilder.h"
 #include "ROOT/RVec.hxx"
 #include <nlohmann/json.hpp> 
+#include "TruthMatcher.h"
 
 //ONNX
 #include "onnxruntime_cxx_api.h"
 #include <torch/torch.h>
 #include "ONNXHelper.h" 
 
+using RecoTruthLinkCollection = edm4hep::RecoMCParticleLinkCollection;
+using CaloTruthLinkCollection = edm4hep::CaloHitMCParticleLinkCollection;
+using TrackTruthLinkCollection = edm4hep::TrackMCParticleLinkCollection;
+
+
+
 namespace rv = ROOT::VecOps;
+
 
  /**
   output: collection
@@ -56,7 +68,8 @@ struct PFHitML final:
    k4FWCore::MultiTransformer<
       std::tuple<
       edm4hep::ReconstructedParticleCollection,
-      edm4hep::ParticleIDCollection
+      edm4hep::ParticleIDCollection,
+      RecoTruthLinkCollection
       >(
 
     const edm4hep::CalorimeterHitCollection&,
@@ -65,7 +78,10 @@ struct PFHitML final:
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
-    const edm4hep::TrackCollection&
+    const edm4hep::TrackCollection&,
+    const edm4hep::MCParticleCollection&, //brauche ich die noch?
+    const CaloTruthLinkCollection&,
+    const TrackTruthLinkCollection&
 
    ) > {
 
@@ -73,7 +89,8 @@ struct PFHitML final:
       : k4FWCore::MultiTransformer<
       std::tuple<
       edm4hep::ReconstructedParticleCollection,
-      edm4hep::ParticleIDCollection
+      edm4hep::ParticleIDCollection,
+      RecoTruthLinkCollection
       > (
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
@@ -81,7 +98,10 @@ struct PFHitML final:
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
-        const edm4hep::TrackCollection&)>(
+        const edm4hep::TrackCollection&,
+        const edm4hep::MCParticleCollection&,
+        const CaloTruthLinkCollection&,
+        const TrackTruthLinkCollection&)>(
         name, svcLoc,
           {
             KeyValues("EcalBarrelHits", {"ECALBarrel"}),
@@ -90,17 +110,23 @@ struct PFHitML final:
             KeyValues("HcalEndcapHits", {"HCALEndcap"}),
             KeyValues("HcalOtherHits", {"HCALOther"}),
             KeyValues("MUON", {"MUON"}),
-            KeyValues("Tracks", {"SiTracks_Refitted"})
+            KeyValues("Tracks", {"SiTracks_Refitted"}),
+            KeyValues("MCParticles", {"MCParticles"}),
+            KeyValues("CalohitMCTruthLink", {"CalohitMCTruthLink"}),
+            KeyValues("SiTracksMCTruthLink", {"SiTracksMCTruthLink"})
           },
           {
             KeyValues("HitPF", {"HitPF"}),
-            KeyValues("HitPFIDs", {"HitPFIDs"})}  // Outputs
+            KeyValues("HitPFIDs", {"HitPFIDs"}),  // Outputs
+            KeyValues("HitPFMCTruthLink", {"HitPFMCTruthLink"})
+          }  
         ) {}
 
   // main
   std::tuple<
   edm4hep::ReconstructedParticleCollection,
-  edm4hep::ParticleIDCollection
+  edm4hep::ParticleIDCollection,
+  RecoTruthLinkCollection
   > operator()(
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
@@ -108,7 +134,10 @@ struct PFHitML final:
     const edm4hep::CalorimeterHitCollection& HcalEndcap_hits,
     const edm4hep::CalorimeterHitCollection& HcalOther_hits,
     const edm4hep::CalorimeterHitCollection& Muon_hits,
-    const edm4hep::TrackCollection& tracks
+    const edm4hep::TrackCollection& tracks,
+    const edm4hep::MCParticleCollection&,
+    const CaloTruthLinkCollection& caloTruthLinks,
+    const TrackTruthLinkCollection& trackTruthLinks
   ) const override {
 
     info() << "EcalBarrelHits: " << EcalBarrel_hits.size() << endmsg;
@@ -135,40 +164,7 @@ struct PFHitML final:
     //convert inputs to expected shape 
     auto clustering_input = extractor.convertModelInputs(inputs_features);
 
-    //debugging
-    info() << "Prepared " << clustering_input.inputs.size()
-       << " ONNX input tensor(s) for batch size "
-       << clustering_input.batch_size << endmsg;
-
-    for (size_t i = 0; i < clustering_input.inputs.size(); ++i) {
-        const auto& inp = clustering_input.inputs[i];
-
-        std::ostringstream shape_msg;
-        shape_msg << "Input tensor " << i
-                  << " name=" << inp.name
-                  << " shape=[";
-
-        for (size_t j = 0; j < inp.shape.size(); ++j) {
-            shape_msg << inp.shape[j];
-            if (j + 1 != inp.shape.size()) {
-                shape_msg << ", ";
-            }
-        }
-
-        shape_msg << "] type="
-                  << (inp.type == ONNXInput::Type::Float ? "float" : "int64");
-
-        if (inp.type == ONNXInput::Type::Float) {
-            shape_msg << " values=" << inp.float_data.size();
-        } else {
-            shape_msg << " values=" << inp.int64_data.size();
-        }
-
-        info() << shape_msg.str() << endmsg;
-    }
-
-
-
+   
     ///////////////////////////////////////////////////
     ////////// Inference Clustering Model //////////
     ///////////////////////////////////////////////////
@@ -176,9 +172,32 @@ struct PFHitML final:
     
     std::vector<std::vector<float>>  outputs = m_onnx->runNamed(clustering_input.inputs);
 
-    //std::cout << "output" << outputs[0][0] <<"" << outputs[0][1]  << "size" << outputs[0].size()<<std::endl;
+    std::cout << "output" << outputs[0][0] <<"" << outputs[0][1]  << "size" << outputs[0].size()<<std::endl;
     //get two outputs, first one has shape (N,4) (three coordinates in embedding space + beta)
     // second output is  dummy for pred_energy_corr (not needed at this stage)
+
+    //for debugging
+    const auto& out0 = outputs.at(0);
+    const std::size_t n_rows = out0.size() / 4;
+
+    std::cout << "onnx out rows=" << n_rows << " cols=4" << std::endl;
+
+    for (std::size_t i = 0; i < std::min<std::size_t>(5, n_rows); ++i) {
+        std::cout << i << ": "
+                  << out0[4*i + 0] << " "
+                  << out0[4*i + 1] << " "
+                  << out0[4*i + 2] << " "
+                  << out0[4*i + 3] << std::endl;
+    }
+
+    for (std::size_t i = (n_rows > 5 ? n_rows - 5 : 0); i < n_rows; ++i) {
+        std::cout << i << ": "
+                  << out0[4*i + 0] << " "
+                  << out0[4*i + 1] << " "
+                  << out0[4*i + 2] << " "
+                  << out0[4*i + 3] << std::endl;
+    }
+
     
 
     /////////////////////////////////////
@@ -199,10 +218,6 @@ struct PFHitML final:
     std::cout << "cluster output shape: " << cluster_label_corrected.sizes() << std::endl;
     std::cout << "changed labels: " << n_changed << std::endl;
 
-    //final output collection
-    auto MLPF = edm4hep::ReconstructedParticleCollection();
-
-
  
     //the pipeline:
     //after clustering, form graphs of hits belonging to one cluster
@@ -216,6 +231,20 @@ struct PFHitML final:
 
     info() << "Number of charged showers: " << split.charged.size() << endmsg;
     info() << "Number of neutral showers: " << split.neutral.size() << endmsg;
+
+    //truth linking
+    TruthMatchConfig truthCfg;
+    truthCfg.iouThreshold = 0.25f;
+    truthCfg.barrelRadius = 2150.f;
+    truthCfg.nBarrelSides = 12;
+    truthCfg.endCapZ = 2307.f;
+
+    const auto showerTruthMatches = matchShowersByIoU(
+        showers,
+        caloTruthLinks,
+        trackTruthLinks,
+        truthCfg
+    );
 
     
 
@@ -242,6 +271,7 @@ struct PFHitML final:
 
   auto HitPF = edm4hep::ReconstructedParticleCollection{};
   auto HitPFIDs = edm4hep::ParticleIDCollection{};
+  auto HitPFMCTruthLink = RecoTruthLinkCollection{};
 
   // loop over showers per event
     for (size_t idx : split.charged) {
@@ -251,7 +281,11 @@ struct PFHitML final:
 
     ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score);
 
+    const auto recoIndex = HitPF.size();
     fillRecoParticle(HitPF, HitPFIDs, showers[idx], recoInfo);
+
+    const auto reco = HitPF.at(recoIndex);
+    fillRecoTruthLink(HitPFMCTruthLink, reco, showerTruthMatches[idx]);
     
   }
 
@@ -267,13 +301,17 @@ struct PFHitML final:
 
     ParticleRecoInfo recoInfo = buildNeutralRecoInfo(showers[idx], pid.physicsClass, pid.score, predictedEnergy, predictedDirection, predictedReferencePoint);
 
+    const auto recoIndex = HitPF.size();
     fillRecoParticle(HitPF, HitPFIDs, showers[idx], recoInfo);
+
+    const auto reco = HitPF.at(recoIndex);
+    fillRecoTruthLink(HitPFMCTruthLink, reco, showerTruthMatches[idx]);
 
   }
     
 
 
-  return {std::move(HitPF), std::move(HitPFIDs)};  //outputs
+  return {std::move(HitPF), std::move(HitPFIDs), std::move(HitPFMCTruthLink)};  //outputs
 
   }
 

@@ -155,11 +155,82 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
     torch::Tensor X = output_model_tensor.slice(1, 0, 3).contiguous();
     const std::size_t n_points = static_cast<std::size_t>(N);
 
+
+    //debug
+    /*
+    std::cout << "\n=== CLUSTER DEBUG: model output ===\n";
+    for (int64_t i = 0; i < std::min<int64_t>(N, 10); ++i) {
+        std::cout << "hit " << i
+                << " X=("
+                << output_model_tensor[i][0].item<float>() << ", "
+                << output_model_tensor[i][1].item<float>() << ", "
+                << output_model_tensor[i][2].item<float>() << ")"
+                << " beta=" << output_model_tensor[i][3].item<float>()
+                << " energy=" << energies[i]
+                << std::endl;
+    }
+     */
+
+
     const auto distances = compute_distance_matrix(X);
     const auto rho = compute_local_density(distances, energies, n_points);
     const auto [delta, nearest] = distance_to_larger_density(distances, rho, n_points);
     const auto centers = cluster_centers(rho, delta);
     const auto ids = assign_cluster_id(rho, nearest, centers);
+
+    //debug
+    /*
+    std::cout << "\n=== sanity checks for hit 0 ===\n";
+    std::cout << "X[0] = "
+            << X[0][0].item<float>() << ", "
+            << X[0][1].item<float>() << ", "
+            << X[0][2].item<float>() << std::endl;
+    std::cout << "energy[0] = " << energies[0] << std::endl;
+    std::cout << "D[0,0] = " << distances[0 * n_points + 0] << std::endl;
+    std::cout << "D[0,1] = " << distances[0 * n_points + 1] << std::endl;
+    std::cout << "D row 0 first 10 = ";
+    for (std::size_t j = 0; j < std::min<std::size_t>(n_points, 10); ++j) {
+        std::cout << distances[0 * n_points + j] << " ";
+    }
+    std::cout << std::endl;
+
+  
+
+
+    std::cout << "\n=== distance matrix (top-left 10x10) ===\n";
+    for (std::size_t i = 0; i < std::min<std::size_t>(n_points, 10); ++i) {
+        for (std::size_t j = 0; j < std::min<std::size_t>(n_points, 10); ++j) {
+            std::cout << distances[i * n_points + j] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    std::cout << "\n=== rho ===\n";
+    for (std::size_t i = 0; i < std::min<std::size_t>(rho.size(), 20); ++i) {
+        std::cout << "rho[" << i << "] = " << rho[i] << std::endl;
+    }
+
+    std::cout << "\n=== delta / nearest ===\n";
+    for (std::size_t i = 0; i < std::min<std::size_t>(delta.size(), 20); ++i) {
+        std::cout << "i=" << i
+                << " delta=" << delta[i]
+                << " nearest=" << nearest[i]
+                << std::endl;
+    }
+
+    std::cout << "\n=== centers ===\n";
+    for (std::size_t i = 0; i < centers.size(); ++i) {
+        std::cout << "center[" << i << "] = " << centers[i] << std::endl;
+    }
+
+    std::cout << "\n=== ids ===\n";
+    for (std::size_t i = 0; i < std::min<std::size_t>(ids.size(), 20); ++i) {
+        std::cout << "ids[" << i << "] = " << ids[i] << std::endl;
+    }
+  */
+
+
+
 
     std::vector<int64_t> labels(n_points, 0);
     for (std::size_t center_index = 0; center_index < centers.size(); ++center_index) {
@@ -171,6 +242,14 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
             }
         }
     }
+
+    //debug
+    std::cout << "\n=== final labels ===\n";
+    for (std::size_t i = 0; i < std::min<std::size_t>(labels.size(), 20); ++i) {
+        std::cout << "label[" << i << "] = " << labels[i] << std::endl;
+    }
+
+
 
     return torch::tensor(labels, torch::dtype(torch::kLong));
 }
@@ -202,6 +281,23 @@ torch::Tensor Clustering::remove_bad_tracks_from_cluster(
         int n_muon_hits = 0;
         std::vector<int64_t> track_nodes;
 
+        //debug
+        std::cout << "\n=== bad track cleanup ===\n";
+        std::cout << "cluster_id = " << cluster_id << std::endl;
+        std::cout << "e_cluster = " << e_cluster << std::endl;
+        std::cout << "n_muon_hits = " << n_muon_hits << std::endl;
+        for (auto node : track_nodes) {
+            const float p_track = p_hits[node];
+            const float diff = (p_track > 0.0f) ? std::abs(e_cluster - p_track) / p_track : -1.0f;
+            const float sigma_4 = (p_track > 0.0f) ? 4.0f * 0.5f / std::sqrt(p_track) : -1.0f;
+            std::cout << "track node=" << node
+                    << " p_track=" << p_track
+                    << " diff=" << diff
+                    << " sigma4=" << sigma_4
+                    << " hit_type=" << hit_type[node]
+                    << std::endl;
+        }
+
         for (int64_t node = 0; node < n_nodes; ++node) {
             if (labels_acc[node] != cluster_id) continue;
 
@@ -230,6 +326,7 @@ torch::Tensor Clustering::remove_bad_tracks_from_cluster(
             }
         }
     }
+
 
     return labels;
 }

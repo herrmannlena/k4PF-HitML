@@ -21,6 +21,8 @@ struct ParticleRecoInfo {
 
   int pdg{0};
   float pidScore{0.f};
+  int physicsClass{0};
+
 };
 
 struct PIDPrediction {

@@ -152,6 +152,8 @@ ParticleRecoInfo buildChargedRecoInfo(
   out.charge = static_cast<float>(q);
   out.pdg = pdg;
   out.pidScore = pidScore;
+  out.physicsClass = predictedClass;
+
   return out;
 }
 
@@ -174,8 +176,13 @@ void fillRecoParticle(
     rp.addToTracks(trk);
   }
 
+  rp.setPDG(recoInfo.pdg);
+  rp.setGoodnessOfPID(recoInfo.pidScore);
+
   pid.setPDG(recoInfo.pdg);
   pid.setLikelihood(recoInfo.pidScore);
+  pid.setType(recoInfo.physicsClass);
+
 
 
 }
@@ -250,12 +257,12 @@ ParticleRecoInfo buildNeutralRecoInfo(
   const float p = std::sqrt(p2);
 
     //debugging
-  std::cout << "  predictedClass = " << predictedClass << std::endl;
-  std::cout << "  pidScore       = " << pidScore << std::endl;
-  std::cout << "  |p|    = " << p << std::endl;
-  std::cout << "  pdg    = " << pdg << std::endl;
-  std::cout << "  mass   = " << mass << std::endl;
-  std::cout << "  energy = " << predictedEnergy << std::endl;
+  //std::cout << "  predictedClass = " << predictedClass << std::endl;
+  //std::cout << "  pidScore       = " << pidScore << std::endl;
+  //std::cout << "  |p|    = " << p << std::endl;
+  //std::cout << "  pdg    = " << pdg << std::endl;
+  //std::cout << "  mass   = " << mass << std::endl;
+  //std::cout << "  energy = " << predictedEnergy << std::endl;
 
   out.momentum = {
       predictedDirection.x * p,
@@ -268,6 +275,8 @@ ParticleRecoInfo buildNeutralRecoInfo(
   out.charge = 0.f;
   out.pdg = pdg;
   out.pidScore = pidScore;
+  out.physicsClass = predictedClass;
+
   return out;
 }
 

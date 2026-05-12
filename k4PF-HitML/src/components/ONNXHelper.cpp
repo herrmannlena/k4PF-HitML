@@ -53,15 +53,6 @@
      const auto nodeInfo = m_session->GetInputTypeInfo(i);
      m_inputNodeDims[input_name] = nodeInfo.GetTensorTypeAndShapeInfo().GetShape();
 
-     //for debugging only
-     std::cout << "[ONNXHelper] Input " << i << ": " << input_name << " shape=[";
-     for (size_t d = 0; d < m_inputNodeDims[input_name].size(); ++d) {
-        std::cout << m_inputNodeDims[input_name][d];
-        if (d + 1 != m_inputNodeDims[input_name].size()) {
-          std::cout << ", ";
-        }
-      }
-     std::cout << "]" << std::endl;
 
    }
  
@@ -80,15 +71,6 @@
      // the 0th dim depends on the batch size
      m_outputNodeDims[output_name].at(0) = -1;
 
-     //for debugging
-     std::cout << "[ONNXHelper] Output " << i << ": " << output_name << " shape=[";
-      for (size_t d = 0; d < m_outputNodeDims[output_name].size(); ++d) {
-        std::cout << m_outputNodeDims[output_name][d];
-        if (d + 1 != m_outputNodeDims[output_name].size()) {
-          std::cout << ", ";
-        }
-      }
-    std::cout << "]" << std::endl;
 
    }
  }
