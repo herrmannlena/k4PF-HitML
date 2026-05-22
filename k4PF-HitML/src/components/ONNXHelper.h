@@ -44,7 +44,6 @@
     std::vector<int64_t> int64_data;
 };
 
- 
  /**
   * @class ONNXHelper
   * @brief A wrapper class for managing ONNX model inference using ONNX Runtime.

@@ -157,7 +157,7 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
 
 
     //debug
-    /*
+    
     std::cout << "\n=== CLUSTER DEBUG: model output ===\n";
     for (int64_t i = 0; i < std::min<int64_t>(N, 10); ++i) {
         std::cout << "hit " << i
@@ -169,7 +169,7 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
                 << " energy=" << energies[i]
                 << std::endl;
     }
-     */
+     
 
 
     const auto distances = compute_distance_matrix(X);
@@ -179,7 +179,7 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
     const auto ids = assign_cluster_id(rho, nearest, centers);
 
     //debug
-    /*
+    
     std::cout << "\n=== sanity checks for hit 0 ===\n";
     std::cout << "X[0] = "
             << X[0][0].item<float>() << ", "
@@ -227,7 +227,7 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
     for (std::size_t i = 0; i < std::min<std::size_t>(ids.size(), 20); ++i) {
         std::cout << "ids[" << i << "] = " << ids[i] << std::endl;
     }
-  */
+  
 
 
 
@@ -244,10 +244,12 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
     }
 
     //debug
+    /*
     std::cout << "\n=== final labels ===\n";
-    for (std::size_t i = 0; i < std::min<std::size_t>(labels.size(), 20); ++i) {
+    for (std::size_t i = 0; i < labels.size(); ++i) {
         std::cout << "label[" << i << "] = " << labels[i] << std::endl;
     }
+    */
 
 
 
@@ -281,21 +283,12 @@ torch::Tensor Clustering::remove_bad_tracks_from_cluster(
         int n_muon_hits = 0;
         std::vector<int64_t> track_nodes;
 
-        //debug
-        std::cout << "\n=== bad track cleanup ===\n";
-        std::cout << "cluster_id = " << cluster_id << std::endl;
-        std::cout << "e_cluster = " << e_cluster << std::endl;
-        std::cout << "n_muon_hits = " << n_muon_hits << std::endl;
+      
         for (auto node : track_nodes) {
             const float p_track = p_hits[node];
             const float diff = (p_track > 0.0f) ? std::abs(e_cluster - p_track) / p_track : -1.0f;
             const float sigma_4 = (p_track > 0.0f) ? 4.0f * 0.5f / std::sqrt(p_track) : -1.0f;
-            std::cout << "track node=" << node
-                    << " p_track=" << p_track
-                    << " diff=" << diff
-                    << " sigma4=" << sigma_4
-                    << " hit_type=" << hit_type[node]
-                    << std::endl;
+          
         }
 
         for (int64_t node = 0; node < n_nodes; ++node) {

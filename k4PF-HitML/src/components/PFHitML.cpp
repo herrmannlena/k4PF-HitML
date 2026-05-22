@@ -169,17 +169,22 @@ struct PFHitML final:
     ////////// Inference Clustering Model //////////
     ///////////////////////////////////////////////////
 
+    info() << "================ EVENT " << m_eventCounter << " ================" << endmsg;
+
+
     
     std::vector<std::vector<float>>  outputs = m_onnx->runNamed(clustering_input.inputs);
 
-    std::cout << "output" << outputs[0][0] <<"" << outputs[0][1]  << "size" << outputs[0].size()<<std::endl;
+    //std::cout << "output" << outputs[0][0] <<"" << outputs[0][1]  << "size" << outputs[0].size()<<std::endl;
     //get two outputs, first one has shape (N,4) (three coordinates in embedding space + beta)
     // second output is  dummy for pred_energy_corr (not needed at this stage)
 
     //for debugging
+    /*
     const auto& out0 = outputs.at(0);
     const std::size_t n_rows = out0.size() / 4;
 
+    
     std::cout << "onnx out rows=" << n_rows << " cols=4" << std::endl;
 
     for (std::size_t i = 0; i < std::min<std::size_t>(5, n_rows); ++i) {
@@ -198,6 +203,22 @@ struct PFHitML final:
                   << out0[4*i + 3] << std::endl;
     }
 
+    const int event_id = m_eventCounter;
+
+    const std::string path = "dump/cpp_event_" + std::to_string(event_id) + ".txt";
+
+    std::ofstream out(path);
+    out << n_rows << " " << 4 << "\n";
+
+    for (std::size_t i = 0; i < n_rows; ++i) {
+        out << out0[4 * i + 0] << " "
+            << out0[4 * i + 1] << " "
+            << out0[4 * i + 2] << " "
+            << out0[4 * i + 3] << "\n";
+    }
+            */
+                
+
     
 
     /////////////////////////////////////
@@ -215,6 +236,7 @@ struct PFHitML final:
     torch::Tensor cluster_label_corrected = clusterer.remove_bad_tracks_from_cluster(cluster_label, inputs_features["hit_type"], inputs_features["node_energy"], inputs_features["node_p"]);
 
     auto n_changed = (cluster_label != cluster_label_corrected).sum().item<int64_t>();
+    std::cout << "originallabels: " << cluster_label.sizes() << std::endl;
     std::cout << "cluster output shape: " << cluster_label_corrected.sizes() << std::endl;
     std::cout << "changed labels: " << n_changed << std::endl;
 
@@ -225,7 +247,7 @@ struct PFHitML final:
     //this function gets the clusters, within this function create shower instances, set x,y,z,..
     ShowerBuilder builder(extractor, inputs);
     auto showers = builder.buildShowers(cluster_label_corrected, outputs[0]);
-    std::cout << "shower output" << showers.size() <<std::endl;
+    //std::cout << "shower output" << showers.size() <<std::endl;
 
     auto split = splitShowersByTrackContent(showers);
 
@@ -273,24 +295,105 @@ struct PFHitML final:
   auto HitPFIDs = edm4hep::ParticleIDCollection{};
   auto HitPFMCTruthLink = RecoTruthLinkCollection{};
 
+
+
   // loop over showers per event
-    for (size_t idx : split.charged) {
+  for (size_t idx : split.charged) {
+
+    //start debug
+    /*
+    const std::size_t edge_values = 50;
+
+    for (const auto& input : prop_inputs[idx].inputs) {
+        info() << "  name=" << input.name
+              << " type=" << (input.type == ONNXInput::Type::Float ? "Float" : "Int64")
+              << " shape=[";
+
+        for (std::size_t i = 0; i < input.shape.size(); ++i) {
+            if (i != 0) info() << ", ";
+            info() << input.shape[i];
+        }
+
+        info() << "] data=[";
+
+        if (input.type == ONNXInput::Type::Float) {
+            const auto& data = input.float_data;
+            const std::size_t n = data.size();
+
+            if (n <= 2 * edge_values) {
+                for (std::size_t i = 0; i < n; ++i) {
+                    if (i != 0) info() << ", ";
+                    info() << data[i];
+                }
+            } else {
+                for (std::size_t i = 0; i < edge_values; ++i) {
+                    if (i != 0) info() << ", ";
+                    info() << data[i];
+                }
+
+                info() << ", ... ";
+
+                for (std::size_t i = n - edge_values; i < n; ++i) {
+                    if (i != n - edge_values) info() << ", ";
+                    info() << data[i];
+                }
+
+                info() << " (" << n << " total)";
+            }
+        } else {
+            const auto& data = input.int64_data;
+            const std::size_t n = data.size();
+
+            if (n <= 2 * edge_values) {
+                for (std::size_t i = 0; i < n; ++i) {
+                    if (i != 0) info() << ", ";
+                    info() << data[i];
+                }
+            } else {
+                for (std::size_t i = 0; i < edge_values; ++i) {
+                    if (i != 0) info() << ", ";
+                    info() << data[i];
+                }
+
+                info() << ", ... ";
+
+                for (std::size_t i = n - edge_values; i < n; ++i) {
+                    if (i != n - edge_values) info() << ", ";
+                    info() << data[i];
+                }
+
+                info() << " (" << n << " total)";
+            }
+        }
+
+        info() << "]" << endmsg;
+    }
+    */
+    // end debug
+    
+  
     auto prop_outputs = m_onnx_prop_charged->runNamed(prop_inputs[idx].inputs);
     const auto& pidLogits = findPIDOutput(*m_onnx_prop_charged, prop_outputs);
     PIDPrediction pid = decodePIDLogits(pidLogits, chargedClassMap);
 
     ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score);
 
+
     const auto recoIndex = HitPF.size();
     fillRecoParticle(HitPF, HitPFIDs, showers[idx], recoInfo);
 
     const auto reco = HitPF.at(recoIndex);
     fillRecoTruthLink(HitPFMCTruthLink, reco, showerTruthMatches[idx]);
+
+  
     
   }
 
 
   for (size_t idx : split.neutral) {
+
+
+
     auto prop_outputs = m_onnx_prop_neutral->runNamed(prop_inputs[idx].inputs);
     const auto& pidLogits = findPIDOutput(*m_onnx_prop_neutral, prop_outputs);
     PIDPrediction pid = decodePIDLogits(pidLogits, neutralClassMap);
@@ -299,7 +402,10 @@ struct PFHitML final:
     edm4hep::Vector3f predictedDirection = computeNeutralDirection(predictedReferencePoint);
 
 
+
     ParticleRecoInfo recoInfo = buildNeutralRecoInfo(showers[idx], pid.physicsClass, pid.score, predictedEnergy, predictedDirection, predictedReferencePoint);
+
+    info() << "energy neutral" << idx << " is " << recoInfo.energy << endmsg;
 
     const auto recoIndex = HitPF.size();
     fillRecoParticle(HitPF, HitPFIDs, showers[idx], recoInfo);
@@ -307,7 +413,11 @@ struct PFHitML final:
     const auto reco = HitPF.at(recoIndex);
     fillRecoTruthLink(HitPFMCTruthLink, reco, showerTruthMatches[idx]);
 
+
+
   }
+
+  ++m_eventCounter;
     
 
 
@@ -342,6 +452,8 @@ struct PFHitML final:
   std::unique_ptr<ONNXHelper> m_onnx;
   std::unique_ptr<ONNXHelper> m_onnx_prop_neutral;
   std::unique_ptr<ONNXHelper> m_onnx_prop_charged;
+  mutable std::size_t m_eventCounter{0}; //for debugging
+
   rv::RVec<std::string> vars;
 
   Gaudi::Property<std::string> model_path_clustering{
@@ -355,6 +467,8 @@ struct PFHitML final:
   Gaudi::Property<std::string> model_path_properties_charged{
     this, "model_path_properties_charged", "/eos/user/l/lherrman/FCC/models/energy_correction_paper_charged_pid.onnx",
     "Path to the ONNX model for charged energy regression and PID"};
+
+  
   
 
 

@@ -95,7 +95,7 @@ float calculate_eta(float x, float y, float z) {
 std::vector<std::vector<float>> one_hot_encode(std::vector<int> values, int n_classes) {
   std::vector<std::vector<float>> out(values.size(), std::vector<float>(n_classes, 0.0f));
   for (std::size_t i = 0; i < values.size(); ++i) {
-      int idx = values[i]-1;
+      int idx = values[i];
       if (idx >= 0 && idx < n_classes)
           out[i][idx] = 1.0f;
   }

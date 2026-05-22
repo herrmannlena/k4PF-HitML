@@ -121,8 +121,8 @@ PreprocessedData DataPreprocessing::extract() const {
     int trackIndex = 0;
     for (const auto& track : tracks_) {
         
-        //trackstate at IP?
-        auto trackstate = track.getTrackStates()[1];
+    
+        auto trackstate = track.getTrackStates()[0];
         float omega = trackstate.omega;
         float phi = trackstate.phi;
         float tanLambda = trackstate.tanLambda;
@@ -277,6 +277,83 @@ PreprocessedData DataPreprocessing::extract() const {
     std::cout << scalars.slice(0, 0, std::min<int64_t>(5, scalars.size(0))) << std::endl;
     std::cout << scalars.slice(0, std::max<int64_t>(0, scalars.size(0) - 5), scalars.size(0)) << std::endl;
 
+    std::cout << "inputs min: " << inputs.min().item<float>()
+          << " max: " << inputs.max().item<float>() << std::endl;
+    std::cout << "inputs_scalar min: " << inputs_scalar.min().item<float>()
+            << " max: " << inputs_scalar.max().item<float>() << std::endl;
+    std::cout << "scalars min: " << scalars.min().item<float>()
+            << " max: " << scalars.max().item<float>() << std::endl;
+
+    std::cout << "\n=== first 10 rows explicit ===\n";
+    for (int64_t i = 0; i < std::min<int64_t>(10, inputs.size(0)); ++i) {
+        std::cout << "row " << i
+              << " pos=("
+              << inputs[i][0].item<float>() << ", "
+              << inputs[i][1].item<float>() << ", "
+              << inputs[i][2].item<float>() << ") "
+              << "hit_type=" << inputs_scalar[i][0].item<float>() << " "
+              << "scalars=("
+              << scalars[i][0].item<float>() << ", "
+              << scalars[i][1].item<float>() << ")"
+              << std::endl;
+    }
+
+    std::cout << "\n=== last 10 rows explicit ===\n";
+    for (int64_t i = std::max<int64_t>(0, inputs.size(0) - 10); i < inputs.size(0); ++i) {
+        std::cout << "row " << i
+              << " pos=("
+              << inputs[i][0].item<float>() << ", "
+              << inputs[i][1].item<float>() << ", "
+              << inputs[i][2].item<float>() << ") "
+              << "hit_type=" << inputs_scalar[i][0].item<float>() << " "
+              << "scalars=("
+              << scalars[i][0].item<float>() << ", "
+              << scalars[i][1].item<float>() << ")"
+              << std::endl;
+    }
+
+
+    std::cout << "\n=== hit type counts ===\n";
+    for (int t = 0; t <= 4; ++t) {
+        auto count = (hit_type_feature == t).sum().item<int64_t>();
+        std::cout << "hit_type " << t << ": " << count << std::endl;
+    }
+
+    std::cout << "nonzero node_e: " << (node_e > 0).sum().item<int64_t>() << std::endl;
+    std::cout << "nonzero node_p: " << (node_p > 0).sum().item<int64_t>() << std::endl;
+
+    std::cout << "\n=== rows around largest disagreement candidate ===\n";
+    for (int64_t i : {0, 1, 2, 3, 4, 139, 1208, 2465, 2468}) {
+        if (i >= 0 && i < inputs.size(0)) {
+            std::cout << "row " << i
+                  << " pos=("
+                  << inputs[i][0].item<float>() << ", "
+                  << inputs[i][1].item<float>() << ", "
+                  << inputs[i][2].item<float>() << ") "
+                  << "hit_type=" << inputs_scalar[i][0].item<float>() << " "
+                  << "scalars=("
+                  << scalars[i][0].item<float>() << ", "
+                  << scalars[i][1].item<float>() << ")"
+                  << std::endl;
+    }
+    }
+
+    std::cout << "scalar col0 min/max: "
+          << scalars.slice(1, 0, 1).min().item<float>() << " "
+          << scalars.slice(1, 0, 1).max().item<float>() << std::endl;
+
+    std::cout << "scalar col1 min/max: "
+          << scalars.slice(1, 1, 2).min().item<float>() << " "
+          << scalars.slice(1, 1, 2).max().item<float>() << std::endl;
+
+
+
+    //end debug
+
+
+
+
+    
 
 
     
