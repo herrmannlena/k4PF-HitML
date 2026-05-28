@@ -261,6 +261,7 @@ PreprocessedData DataPreprocessing::extract() const {
  
     
     //debug
+    /*
     torch::Tensor inputs = pos_feature;
     torch::Tensor inputs_scalar = hit_type_feature.unsqueeze(1);
     torch::Tensor scalars = torch::cat({node_e, node_p}, 1);
@@ -346,7 +347,7 @@ PreprocessedData DataPreprocessing::extract() const {
           << scalars.slice(1, 1, 2).min().item<float>() << " "
           << scalars.slice(1, 1, 2).max().item<float>() << std::endl;
 
-
+   */
 
     //end debug
 
@@ -591,7 +592,7 @@ PreprocessedData DataPreprocessing::extract() const {
         std::vector<int64_t> hit_type;
         hit_type.reserve(shower_i.types_.size());
         for (int t : shower_i.types_) {
-            hit_type.push_back(static_cast<int64_t>(t));
+            hit_type.push_back(static_cast<int64_t>(t - 1));
         }
 
         packed.inputs.push_back(ONNXInput{

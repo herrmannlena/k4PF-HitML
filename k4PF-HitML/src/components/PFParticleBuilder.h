@@ -1,3 +1,6 @@
+#ifndef PFPARTICLEBUILDER_H
+#define PFPARTICLEBUILDER_H
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -71,4 +74,4 @@ void fillRecoParticle(
     const ParticleRecoInfo& info
 );
 
-
+#endif

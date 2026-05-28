@@ -21,6 +21,9 @@
 #include <utility>
 #include <vector>
 
+
+
+
 struct TruthMatchConfig {
   float iouThreshold{0.25f};
   float barrelRadius{2150.f};
@@ -386,3 +389,78 @@ inline void fillRecoTruthLink(
   link.setTo(match.mc);
   link.setWeight(match.iou);
 }
+
+struct TruthRecoSummary {
+  edm4hep::MCParticle mc{};
+  ObjectIDKey key{};
+  float recoCaloEnergy{0.f};
+  int nTracks{0};
+};
+
+template <typename CaloLinkCollectionT, typename TrackLinkCollectionT>
+std::vector<TruthRecoSummary> collectTruthRecoSummaries(
+    const CaloLinkCollectionT& caloTruthLinks,
+    const TrackLinkCollectionT& trackTruthLinks,
+    const TruthMatchConfig& cfg = {}
+) {
+  const auto hitTruth = truth_detail::buildBestTruthMap(caloTruthLinks, true, cfg);
+  const auto trackTruth = truth_detail::buildBestTruthMap(trackTruthLinks, false, cfg);
+
+  std::unordered_map<ObjectIDKey, TruthRecoSummary, ObjectIDKeyHash> out;
+  std::unordered_set<ObjectIDKey, ObjectIDKeyHash> seenHits;
+  std::unordered_set<ObjectIDKey, ObjectIDKeyHash> seenTracks;
+
+  for (const auto& link : caloTruthLinks) {
+    const auto fromKey = makeKey(link.getFrom().getObjectID());
+    if (!seenHits.insert(fromKey).second) {
+      continue;
+    }
+
+    const auto it = hitTruth.find(fromKey);
+    if (it == hitTruth.end() || !it->second.valid) {
+      continue;
+    }
+
+    auto& row = out[it->second.key];
+    if (!row.key.valid()) {
+      row.key = it->second.key;
+      row.mc = it->second.mc;
+    }
+    row.recoCaloEnergy += link.getFrom().getEnergy();
+  }
+
+  for (const auto& link : trackTruthLinks) {
+    const auto fromKey = makeKey(link.getFrom().getObjectID());
+    if (!seenTracks.insert(fromKey).second) {
+      continue;
+    }
+
+    const auto it = trackTruth.find(fromKey);
+    if (it == trackTruth.end() || !it->second.valid) {
+      continue;
+    }
+
+    auto& row = out[it->second.key];
+    if (!row.key.valid()) {
+      row.key = it->second.key;
+      row.mc = it->second.mc;
+    }
+    row.nTracks += 1;
+  }
+
+  std::vector<TruthRecoSummary> result;
+  result.reserve(out.size());
+  for (auto& [_, row] : out) {
+    result.push_back(row);
+  }
+
+  std::sort(result.begin(), result.end(), [](const TruthRecoSummary& a, const TruthRecoSummary& b) {
+    if (a.key.collectionID != b.key.collectionID) {
+      return a.key.collectionID < b.key.collectionID;
+    }
+    return a.key.index < b.key.index;
+  });
+
+  return result;
+}
+

@@ -16,6 +16,11 @@ std::vector<float> Clustering::compute_distance_matrix(const torch::Tensor& X) c
     const auto positions = X.accessor<float, 2>();
     const std::size_t n_points = static_cast<std::size_t>(X.size(0));
     std::vector<float> distances(n_points * n_points, 0.0f);
+    //put nan on diagonal
+    //std::vector<float> distances(
+    //    n_points * n_points,
+    //    std::numeric_limits<float>::quiet_NaN()
+    //);
 
     for (std::size_t i = 0; i < n_points; ++i) {
         for (std::size_t j = i + 1; j < n_points; ++j) {
@@ -158,28 +163,29 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
 
     //debug
     
-    std::cout << "\n=== CLUSTER DEBUG: model output ===\n";
-    for (int64_t i = 0; i < std::min<int64_t>(N, 10); ++i) {
-        std::cout << "hit " << i
-                << " X=("
-                << output_model_tensor[i][0].item<float>() << ", "
-                << output_model_tensor[i][1].item<float>() << ", "
-                << output_model_tensor[i][2].item<float>() << ")"
-                << " beta=" << output_model_tensor[i][3].item<float>()
-                << " energy=" << energies[i]
-                << std::endl;
-    }
+    //std::cout << "\n=== CLUSTER DEBUG: model output ===\n";
+    //for (int64_t i = 0; i < std::min<int64_t>(N, 10); ++i) {
+    //    std::cout << "hit " << i
+    //            << " X=("
+    //            << output_model_tensor[i][0].item<float>() << ", "
+    //            << output_model_tensor[i][1].item<float>() << ", "
+    //            << output_model_tensor[i][2].item<float>() << ")"
+    //            << " beta=" << output_model_tensor[i][3].item<float>()
+    //            << " energy=" << energies[i]
+    //            << std::endl;
+    //}
      
 
 
-    const auto distances = compute_distance_matrix(X);
+    //const auto distances = compute_distance_matrix(X);
+    auto distances = compute_distance_matrix(X);
     const auto rho = compute_local_density(distances, energies, n_points);
     const auto [delta, nearest] = distance_to_larger_density(distances, rho, n_points);
     const auto centers = cluster_centers(rho, delta);
     const auto ids = assign_cluster_id(rho, nearest, centers);
 
     //debug
-    
+    /*
     std::cout << "\n=== sanity checks for hit 0 ===\n";
     std::cout << "X[0] = "
             << X[0][0].item<float>() << ", "
@@ -219,6 +225,7 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
     }
 
     std::cout << "\n=== centers ===\n";
+    std::cout << "number of center" << centers.size() << std::endl;
     for (std::size_t i = 0; i < centers.size(); ++i) {
         std::cout << "center[" << i << "] = " << centers[i] << std::endl;
     }
@@ -227,9 +234,17 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
     for (std::size_t i = 0; i < std::min<std::size_t>(ids.size(), 20); ++i) {
         std::cout << "ids[" << i << "] = " << ids[i] << std::endl;
     }
+        */
   
 
-
+    // maybe remove? to be consistent with python
+    // Mimic Python behavior:
+    // D has NaNs during rho calculation, then D[np.isnan(D)] = 0 before core assignment.
+    for (float& d : distances) {
+        if (std::isnan(d)) {
+            d = 0.0f;
+        }
+    }
 
 
     std::vector<int64_t> labels(n_points, 0);

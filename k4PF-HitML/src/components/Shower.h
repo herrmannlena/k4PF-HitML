@@ -30,7 +30,7 @@ public:
         return tracks_;
     }
 
-    const std::pair<float, float> getCaloEnergy(std::vector<edm4hep::CalorimeterHit> collection);
+    std::pair<float, float> getCaloEnergy(std::vector<edm4hep::CalorimeterHit> collection) const;
 
     const float getTrackMomentum_mean(); //retruns mean track momentum per shower
 

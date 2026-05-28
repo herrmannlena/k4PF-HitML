@@ -43,6 +43,13 @@
 #include "ROOT/RVec.hxx"
 #include <nlohmann/json.hpp> 
 #include "TruthMatcher.h"
+#include <optional>
+#include <unordered_map>
+#include <limits>
+#include <fstream>
+#include "EvaluationSummary.h"
+
+
 
 //ONNX
 #include "onnxruntime_cxx_api.h"
@@ -61,6 +68,9 @@ namespace rv = ROOT::VecOps;
  /**
   output: collection
   */
+
+
+
 
 
 
@@ -295,6 +305,18 @@ struct PFHitML final:
   auto HitPFIDs = edm4hep::ParticleIDCollection{};
   auto HitPFMCTruthLink = RecoTruthLinkCollection{};
 
+  const auto truthSummaries = collectTruthRecoSummaries(
+    caloTruthLinks,
+    trackTruthLinks,
+    truthCfg
+  );
+
+  EvaluationSummaryBuilder evalBuilder(
+      showers,
+      showerTruthMatches,
+      truthSummaries
+  );
+
 
 
   // loop over showers per event
@@ -378,6 +400,7 @@ struct PFHitML final:
 
     ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score);
 
+    evalBuilder.addRecoResult(idx, recoInfo);
 
     const auto recoIndex = HitPF.size();
     fillRecoParticle(HitPF, HitPFIDs, showers[idx], recoInfo);
@@ -393,6 +416,79 @@ struct PFHitML final:
   for (size_t idx : split.neutral) {
 
 
+     //start debug
+    /*
+    const std::size_t edge_values = 50;
+
+    for (const auto& input : prop_inputs[idx].inputs) {
+        info() << "  name=" << input.name
+              << " type=" << (input.type == ONNXInput::Type::Float ? "Float" : "Int64")
+              << " shape=[";
+
+        for (std::size_t i = 0; i < input.shape.size(); ++i) {
+            if (i != 0) info() << ", ";
+            info() << input.shape[i];
+        }
+
+        info() << "] data=[";
+
+        if (input.type == ONNXInput::Type::Float) {
+            const auto& data = input.float_data;
+            const std::size_t n = data.size();
+
+            if (n <= 2 * edge_values) {
+                for (std::size_t i = 0; i < n; ++i) {
+                    if (i != 0) info() << ", ";
+                    info() << data[i];
+                }
+            } else {
+                for (std::size_t i = 0; i < edge_values; ++i) {
+                    if (i != 0) info() << ", ";
+                    info() << data[i];
+                }
+
+                info() << ", ... ";
+
+                for (std::size_t i = n - edge_values; i < n; ++i) {
+                    if (i != n - edge_values) info() << ", ";
+                    info() << data[i];
+                }
+
+                info() << " (" << n << " total)";
+            }
+        } else {
+            const auto& data = input.int64_data;
+            const std::size_t n = data.size();
+
+            if (n <= 2 * edge_values) {
+                for (std::size_t i = 0; i < n; ++i) {
+                    if (i != 0) info() << ", ";
+                    info() << data[i];
+                }
+            } else {
+                for (std::size_t i = 0; i < edge_values; ++i) {
+                    if (i != 0) info() << ", ";
+                    info() << data[i];
+                }
+
+                info() << ", ... ";
+
+                for (std::size_t i = n - edge_values; i < n; ++i) {
+                    if (i != n - edge_values) info() << ", ";
+                    info() << data[i];
+                }
+
+                info() << " (" << n << " total)";
+            }
+        }
+
+        info() << "]" << endmsg;
+    }
+        */
+    
+    // end debug
+
+   
 
     auto prop_outputs = m_onnx_prop_neutral->runNamed(prop_inputs[idx].inputs);
     const auto& pidLogits = findPIDOutput(*m_onnx_prop_neutral, prop_outputs);
@@ -405,7 +501,7 @@ struct PFHitML final:
 
     ParticleRecoInfo recoInfo = buildNeutralRecoInfo(showers[idx], pid.physicsClass, pid.score, predictedEnergy, predictedDirection, predictedReferencePoint);
 
-    info() << "energy neutral" << idx << " is " << recoInfo.energy << endmsg;
+    evalBuilder.addRecoResult(idx, recoInfo);
 
     const auto recoIndex = HitPF.size();
     fillRecoParticle(HitPF, HitPFIDs, showers[idx], recoInfo);
@@ -414,8 +510,33 @@ struct PFHitML final:
     fillRecoTruthLink(HitPFMCTruthLink, reco, showerTruthMatches[idx]);
 
 
+    //begin debug
+    // k4PFHitML/k4PF-HitML/src/components/PFHitML.cpp
+
+    const auto pidObj = HitPFIDs.at(recoIndex);
+    const auto p = reco.getMomentum();
+    const auto r = reco.getReferencePoint();
+
+    info() << "=== C++ final neutral properties === "
+          << "idx=" << idx
+          << " calibrated_E=" << reco.getEnergy()
+          << " momentum=(" << p.x << ", " << p.y << ", " << p.z << ")"
+          << " ref_pt=(" << r.x << ", " << r.y << ", " << r.z << ")"
+          << " mass=" << reco.getMass()
+          << " charge=" << reco.getCharge()
+          << " pdg=" << reco.getPDG()
+          << " pid_class=" << pidObj.getType()
+          << " pid_likelihood=" << pidObj.getLikelihood()
+          << endmsg;
+    //end debug
+
+
+
 
   }
+
+  const auto evalRows = evalBuilder.finalize();
+
 
   ++m_eventCounter;
     

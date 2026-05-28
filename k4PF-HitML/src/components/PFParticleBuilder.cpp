@@ -55,7 +55,7 @@ PIDPrediction decodePIDLogits(
 }
 
 
-namespace {
+
 
 
 static edm4hep::Vector3f momentumFromTrackState(const edm4hep::TrackState& ts) {
@@ -92,29 +92,6 @@ static int chargeSignFromTrack(const edm4hep::TrackState& ts) {
   return (ts.omega > 0.f) ? +1 : -1;
 }
 
-static float massFromPDG(int pdg) {
-  switch (std::abs(pdg)) {
-    case 11:  return 0.000511f;
-    case 13:  return 0.105658f;
-    case 211: return 0.139570f;
-    default:  return 0.139570f; // charged-hadron bucket -> pion mass
-  }
-}
-
-static int chargedClassToPDG(int predictedClass, int chargeSign) {
-  // Python charged classes are [0, 1, 4]
-  // 0 -> electron, 1 -> charged hadron, 4 -> muon
-  if (predictedClass == 0) {
-    return chargeSign > 0 ? -11 : 11;
-  }
-  if (predictedClass == 4) {
-    return chargeSign > 0 ? -13 : 13;
-  }
-  return chargeSign > 0 ? 211 : -211;
-}
-
-} // namespace
-
 
 
 ParticleRecoInfo buildChargedRecoInfo(
@@ -127,12 +104,9 @@ ParticleRecoInfo buildChargedRecoInfo(
   const auto& trk = pickBestTrack(shower);
   const auto& ts = trk.getTrackStates()[1]; // correct index??
 
-  const auto p3 = momentumFromTrackState(ts);
-  const float p = momentumMagnitude(p3);
-  const int q = chargeSignFromTrack(ts);
-  const int pdg = chargedClassToPDG(predictedClass, q);
-  const float mass = massFromPDG(pdg);
-  const float energy = std::sqrt(p * p + mass * mass);
+  //const auto p3 = momentumFromTrackState(ts);
+  //const float p = momentumMagnitude(p3);
+  //const float energy = std::sqrt(p * p + mass * mass);
 
   //debugging
   //std::cout << "  predictedClass = " << predictedClass << std::endl;
@@ -145,12 +119,9 @@ ParticleRecoInfo buildChargedRecoInfo(
   //std::cout << "  energy = " << energy << std::endl;
 
 
-  out.momentum = p3;
+  //out.momentum = p3;
   out.referencePoint = ts.referencePoint;
-  out.energy = energy;
-  out.mass = mass;
-  out.charge = static_cast<float>(q);
-  out.pdg = pdg;
+  //out.energy = energy;
   out.pidScore = pidScore;
   out.physicsClass = predictedClass;
 
@@ -176,10 +147,9 @@ void fillRecoParticle(
     rp.addToTracks(trk);
   }
 
-  rp.setPDG(recoInfo.pdg);
   rp.setGoodnessOfPID(recoInfo.pidScore);
 
-  pid.setPDG(recoInfo.pdg);
+
   pid.setLikelihood(recoInfo.pidScore);
   pid.setType(recoInfo.physicsClass);
 
@@ -208,18 +178,37 @@ edm4hep::Vector3f computeNeutralDirection(const edm4hep::Vector3f& referencePoin
 }
 
 edm4hep::Vector3f computeNeutralReferencePoint(const Shower& shower) {
+  const auto& ecalHits = shower.ecalHits_;
+  const auto& hcalHits = shower.hcalHits_;
+
+  const float nEcal = static_cast<float>(ecalHits.size());
+  const float nHcal = static_cast<float>(hcalHits.size());
+  const float denom = nEcal + nHcal;
+
+  // Match Python:
+  // mask_ecal_only = (n_ecal_hits / (n_hcal_hits + n_ecal_hits)) > 0.05
+  const bool useEcalOnly = (denom > 0.f) ? ((nEcal / denom) > 0.05f) : false;
+
   float sumE = 0.f;
   float x = 0.f;
   float y = 0.f;
   float z = 0.f;
 
-  for (const auto& hit : shower.getCalorimeterHits()) {
-    const auto pos = hit.getPosition();
-    const float e = hit.getEnergy();
-    sumE += e;
-    x += pos.x * e;
-    y += pos.y * e;
-    z += pos.z * e;
+  auto accumulateHits = [&](const std::vector<edm4hep::CalorimeterHit>& hits) {
+    for (const auto& hit : hits) {
+      const auto pos = hit.getPosition();
+      const float e = hit.getEnergy();
+      sumE += e;
+      x += pos.x * e;
+      y += pos.y * e;
+      z += pos.z * e;
+    }
+  };
+
+  if (useEcalOnly) {
+    accumulateHits(ecalHits);
+  } else {
+    accumulateHits(shower.getCalorimeterHits());
   }
 
   if (sumE <= 0.f) {
@@ -228,6 +217,7 @@ edm4hep::Vector3f computeNeutralReferencePoint(const Shower& shower) {
 
   return {x / sumE, y / sumE, z / sumE};
 }
+
 
 
 ParticleRecoInfo buildNeutralRecoInfo(
@@ -240,23 +230,7 @@ ParticleRecoInfo buildNeutralRecoInfo(
 ) {
   ParticleRecoInfo out{};
 
-  int pdg = 0;
-  float mass = 0.f;
-
-  // neutral classes: [2, 3]
-  // 2 -> neutral hadron, 3 -> photon
-  if (predictedClass == 3) {
-    pdg = 22;
-    mass = 0.f;
-  } else {
-    pdg = 130;
-    mass = 0.497611f;
-  }
-
-  const float p2 = std::max(0.f, predictedEnergy * predictedEnergy - mass * mass);
-  const float p = std::sqrt(p2);
-
-    //debugging
+  //debugging
   //std::cout << "  predictedClass = " << predictedClass << std::endl;
   //std::cout << "  pidScore       = " << pidScore << std::endl;
   //std::cout << "  |p|    = " << p << std::endl;
@@ -264,20 +238,16 @@ ParticleRecoInfo buildNeutralRecoInfo(
   //std::cout << "  mass   = " << mass << std::endl;
   //std::cout << "  energy = " << predictedEnergy << std::endl;
 
-  out.momentum = {
-      predictedDirection.x * p,
-      predictedDirection.y * p,
-      predictedDirection.z * p
-  };
   out.referencePoint = predictedReferencePoint;
   out.energy = predictedEnergy;
-  out.mass = mass;
-  out.charge = 0.f;
-  out.pdg = pdg;
   out.pidScore = pidScore;
   out.physicsClass = predictedClass;
 
   return out;
 }
+
+
+
+
 
 

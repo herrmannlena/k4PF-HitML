@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 from Configurables import PFHitML
-from Configurables import k4DataSvc
+#from Configurables import k4DataSvc
 from Gaudi.Configuration import INFO
 from k4FWCore import ApplicationMgr, IOSvc
 from k4FWCore.parseArgs import parser
