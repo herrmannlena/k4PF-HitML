@@ -39,7 +39,7 @@ std::vector<EvalRow> EvaluationSummaryBuilder::finalize() const {
     row.truthIndex = ts.key.index;
     row.truthCollectionID = ts.key.collectionID;
     row.trueEnergy = ts.mc.getEnergy();
-    row.truePDG = ts.mc.getPDG();
+    //row.truePDG = ts.mc.getPDG();
     row.recoShowersE = ts.recoCaloEnergy;
     row.isTrackInMC = ts.nTracks;
     row.genStatus = ts.mc.getGeneratorStatus();
@@ -75,7 +75,7 @@ std::vector<EvalRow> EvaluationSummaryBuilder::finalize() const {
       row.calibratedE = reco.energy;
       row.predShowersE = m_predClusterEnergyPerShower[idx];
       row.predClass = reco.physicsClass;
-      row.predPDG = reco.pdg;
+      //row.predPDG = reco.pdg;
       row.pidScore = reco.pidScore;
       row.iou = match.iou;
 
@@ -95,7 +95,7 @@ std::vector<EvalRow> EvaluationSummaryBuilder::finalize() const {
       row.calibratedE = reco.energy;
       row.predShowersE = m_predClusterEnergyPerShower[idx];
       row.predClass = reco.physicsClass;
-      row.predPDG = reco.pdg;
+      //row.predPDG = reco.pdg;
       row.pidScore = reco.pidScore;
 
       row.px = reco.momentum.x;

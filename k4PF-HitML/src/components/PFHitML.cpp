@@ -408,6 +408,22 @@ struct PFHitML final:
     const auto reco = HitPF.at(recoIndex);
     fillRecoTruthLink(HitPFMCTruthLink, reco, showerTruthMatches[idx]);
 
+    
+    //debug
+
+    const auto pidObj = HitPFIDs.at(recoIndex);
+    const auto r = reco.getReferencePoint();
+    
+    info() << "=== C++ final charged properties === "
+          << "idx=" << idx
+          << " calibrated_E=" << reco.getEnergy()
+          //<< " ref_pt=(" << r.x << ", " << r.y << ", " << r.z << ")"
+          << " momentum=" << recoInfo.momentum
+          << " mass=" << recoInfo.mass
+          << " pid_class=" << pidObj.getType()
+          << " pid_likelihood=" << pidObj.getLikelihood()
+          << endmsg;
+
   
     
   }
@@ -511,23 +527,20 @@ struct PFHitML final:
 
 
     //begin debug
-    // k4PFHitML/k4PF-HitML/src/components/PFHitML.cpp
+    /*
 
     const auto pidObj = HitPFIDs.at(recoIndex);
-    const auto p = reco.getMomentum();
     const auto r = reco.getReferencePoint();
 
     info() << "=== C++ final neutral properties === "
           << "idx=" << idx
           << " calibrated_E=" << reco.getEnergy()
-          << " momentum=(" << p.x << ", " << p.y << ", " << p.z << ")"
           << " ref_pt=(" << r.x << ", " << r.y << ", " << r.z << ")"
-          << " mass=" << reco.getMass()
-          << " charge=" << reco.getCharge()
-          << " pdg=" << reco.getPDG()
+          << " direction=" << recoInfo.direction
           << " pid_class=" << pidObj.getType()
           << " pid_likelihood=" << pidObj.getLikelihood()
           << endmsg;
+    */
     //end debug
 
 
@@ -545,6 +558,7 @@ struct PFHitML final:
   return {std::move(HitPF), std::move(HitPFIDs), std::move(HitPFMCTruthLink)};  //outputs
 
   }
+  
 
   StatusCode initialize() override {
     info() << "Initializing PFHitML and loading model..." << endmsg;

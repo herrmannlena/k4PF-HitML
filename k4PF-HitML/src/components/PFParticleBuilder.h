@@ -17,12 +17,10 @@ class Shower;
 struct ParticleRecoInfo {
   edm4hep::Vector3f momentum{};
   edm4hep::Vector3f referencePoint{};
+  edm4hep::Vector3f direction{};
 
   float energy{0.f};
   float mass{0.f};
-  float charge{0.f};
-
-  int pdg{0};
   float pidScore{0.f};
   int physicsClass{0};
 
@@ -73,5 +71,7 @@ void fillRecoParticle(
     const Shower& shower,
     const ParticleRecoInfo& info
 );
+
+
 
 #endif

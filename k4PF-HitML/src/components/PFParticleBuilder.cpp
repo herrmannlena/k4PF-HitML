@@ -10,6 +10,17 @@
 #include <limits>
 #include <stdexcept>
 
+static float massFromPredictedClass(int predictedClass) {
+  switch (predictedClass) {
+    case 0: return 0.000511f;   // electron
+    case 1: return 0.139570f;   // charged hadron -> pion mass
+    case 2: return 0.939565f;   // neutral hadron -> neutron mass
+    case 3: return 0.f;         // photon
+    case 4: return 0.105658f;   // muon
+    default: return 0.f;
+  }
+}
+
 
 const std::vector<float>& findPIDOutput(
     const ONNXHelper& model,
@@ -77,15 +88,23 @@ static const edm4hep::Track& pickBestTrack(const Shower& shower) {
   }
 
   size_t bestIdx = 0;
-  float bestChi2 = std::numeric_limits<float>::max();
+  float bestScore = std::numeric_limits<float>::max();
+
   for (size_t i = 0; i < tracks.size(); ++i) {
-    if (tracks[i].getChi2() < bestChi2) {
-      bestChi2 = tracks[i].getChi2();
+    const float ndf = tracks[i].getNdf();
+    const float score = (ndf > 0.f) ? tracks[i].getChi2() / ndf
+                                    : std::numeric_limits<float>::max();
+
+    if (score < bestScore) {
+      bestScore = score;
       bestIdx = i;
     }
   }
   return tracks[bestIdx];
 }
+
+
+
 
 static int chargeSignFromTrack(const edm4hep::TrackState& ts) {
   // Verify convention once with your sample.
@@ -102,11 +121,12 @@ ParticleRecoInfo buildChargedRecoInfo(
   ParticleRecoInfo out{};
 
   const auto& trk = pickBestTrack(shower);
-  const auto& ts = trk.getTrackStates()[1]; // correct index??
+  const auto& ts = trk.getTrackStates()[0]; // correct index??
 
-  //const auto p3 = momentumFromTrackState(ts);
-  //const float p = momentumMagnitude(p3);
-  //const float energy = std::sqrt(p * p + mass * mass);
+  const float mass = massFromPredictedClass(predictedClass);
+
+  const auto p3 = momentumFromTrackState(ts);
+  const float p = momentumMagnitude(p3);
 
   //debugging
   //std::cout << "  predictedClass = " << predictedClass << std::endl;
@@ -119,11 +139,13 @@ ParticleRecoInfo buildChargedRecoInfo(
   //std::cout << "  energy = " << energy << std::endl;
 
 
-  //out.momentum = p3;
+  out.momentum = p3;
   out.referencePoint = ts.referencePoint;
-  //out.energy = energy;
+  out.energy = p;  //this correct?
   out.pidScore = pidScore;
   out.physicsClass = predictedClass;
+  out.mass = mass;
+ 
 
   return out;
 }
@@ -140,7 +162,6 @@ void fillRecoParticle(
   rp.setMomentum(recoInfo.momentum);
   rp.setEnergy(recoInfo.energy);
   rp.setMass(recoInfo.mass);
-  rp.setCharge(recoInfo.charge);
   rp.setReferencePoint(recoInfo.referencePoint);
 
   for (const auto& trk : shower.getTracks()) {
@@ -230,21 +251,20 @@ ParticleRecoInfo buildNeutralRecoInfo(
 ) {
   ParticleRecoInfo out{};
 
-  //debugging
-  //std::cout << "  predictedClass = " << predictedClass << std::endl;
-  //std::cout << "  pidScore       = " << pidScore << std::endl;
-  //std::cout << "  |p|    = " << p << std::endl;
-  //std::cout << "  pdg    = " << pdg << std::endl;
-  //std::cout << "  mass   = " << mass << std::endl;
-  //std::cout << "  energy = " << predictedEnergy << std::endl;
+  const float mass = massFromPredictedClass(predictedClass);
+
 
   out.referencePoint = predictedReferencePoint;
+  out.direction = predictedDirection;
+
   out.energy = predictedEnergy;
   out.pidScore = pidScore;
   out.physicsClass = predictedClass;
+  out.mass = mass;
 
   return out;
 }
+
 
 
 
