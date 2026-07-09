@@ -159,6 +159,59 @@ void dumpShowerRegressionInputs(const std::vector<Shower>& showers,
     }
 }
 
+void dumpChargedRefPointDebug(const Shower& shower, int64_t label, std::size_t eventIdx) {
+    const auto& tracks = shower.getTracks();
+    if (tracks.empty()) return;
+
+    std::size_t bestIdx = 0;
+    float bestScore = std::numeric_limits<float>::max();
+    for (std::size_t i = 0; i < tracks.size(); ++i) {
+        const float ndf = tracks[i].getNdf();
+        const float score = (ndf > 0.f) ? tracks[i].getChi2() / ndf : std::numeric_limits<float>::max();
+        if (score < bestScore) {
+            bestScore = score;
+            bestIdx = i;
+        }
+    }
+    const auto caloState = tracks[bestIdx].getTrackStates()[3];  // AtCalorimeter
+    const auto& p_xyz = caloState.referencePoint;
+
+    float sumE = 0.f, x = 0.f, y = 0.f, z = 0.f;
+    for (const auto& hit : shower.getCalorimeterHits()) {
+        const auto pos = hit.getPosition();
+        const float e = hit.getEnergy();
+        sumE += e;
+        x += pos.x * e;
+        y += pos.y * e;
+        z += pos.z * e;
+    }
+    const float bx = (sumE > 0.f) ? x / sumE : 0.f;
+    const float by = (sumE > 0.f) ? y / sumE : 0.f;
+    const float bz = (sumE > 0.f) ? z / sumE : 0.f;
+
+    std::ofstream out("dump/cpp_event_" + std::to_string(eventIdx) +
+                       "_shower_" + std::to_string(label) + "_charged_refpt_debug.txt");
+    out << std::setprecision(9);
+    out << 1 << " 9\n";  // columns: p_xyz_calo(3) barycenter(3) offset=barycenter-p_xyz_calo(3)
+    out << p_xyz.x << " " << p_xyz.y << " " << p_xyz.z << " "
+        << bx << " " << by << " " << bz << " "
+        << (bx - p_xyz.x) << " " << (by - p_xyz.y) << " " << (bz - p_xyz.z) << "\n";
+}
+
+void dumpShowerRegressionOutput(const std::vector<float>& values,
+                                 int64_t label,
+                                 const std::string& suffix,
+                                 std::size_t eventIdx) {
+    std::ofstream out("dump/cpp_event_" + std::to_string(eventIdx) +
+                       "_shower_" + std::to_string(label) + "_" + suffix + ".txt");
+    out << std::setprecision(9);
+    out << 1 << " " << values.size() << "\n";
+    for (std::size_t k = 0; k < values.size(); ++k) {
+        out << (k ? " " : "") << values[k];
+    }
+    out << "\n";
+}
+
 }  // namespace
 
  /**
@@ -393,81 +446,15 @@ struct PFHitML final:
   // loop over showers per event
   for (size_t idx : split.charged) {
 
-    //start debug
-    /*
-    const std::size_t edge_values = 50;
-
-    for (const auto& input : prop_inputs[idx].inputs) {
-        info() << "  name=" << input.name
-              << " type=" << (input.type == ONNXInput::Type::Float ? "Float" : "Int64")
-              << " shape=[";
-
-        for (std::size_t i = 0; i < input.shape.size(); ++i) {
-            if (i != 0) info() << ", ";
-            info() << input.shape[i];
-        }
-
-        info() << "] data=[";
-
-        if (input.type == ONNXInput::Type::Float) {
-            const auto& data = input.float_data;
-            const std::size_t n = data.size();
-
-            if (n <= 2 * edge_values) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    if (i != 0) info() << ", ";
-                    info() << data[i];
-                }
-            } else {
-                for (std::size_t i = 0; i < edge_values; ++i) {
-                    if (i != 0) info() << ", ";
-                    info() << data[i];
-                }
-
-                info() << ", ... ";
-
-                for (std::size_t i = n - edge_values; i < n; ++i) {
-                    if (i != n - edge_values) info() << ", ";
-                    info() << data[i];
-                }
-
-                info() << " (" << n << " total)";
-            }
-        } else {
-            const auto& data = input.int64_data;
-            const std::size_t n = data.size();
-
-            if (n <= 2 * edge_values) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    if (i != 0) info() << ", ";
-                    info() << data[i];
-                }
-            } else {
-                for (std::size_t i = 0; i < edge_values; ++i) {
-                    if (i != 0) info() << ", ";
-                    info() << data[i];
-                }
-
-                info() << ", ... ";
-
-                for (std::size_t i = n - edge_values; i < n; ++i) {
-                    if (i != n - edge_values) info() << ", ";
-                    info() << data[i];
-                }
-
-                info() << " (" << n << " total)";
-            }
-        }
-
-        info() << "]" << endmsg;
-    }
-    */
-    // end debug
     
-  
     auto prop_outputs = m_onnx_prop_charged->runNamed(prop_inputs[idx].inputs);
     const auto& pidLogits = findPIDOutput(*m_onnx_prop_charged, prop_outputs);
     PIDPrediction pid = decodePIDLogits(pidLogits, chargedClassMap);
+
+    if (m_eventCounter < m_maxDumpEvents) {
+      dumpShowerRegressionOutput(pidLogits, showers[idx].label_, "charged_output", m_eventCounter);
+      dumpChargedRefPointDebug(showers[idx], showers[idx].label_, m_eventCounter);
+    }
 
     ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score);
 
@@ -502,79 +489,6 @@ struct PFHitML final:
 
   for (size_t idx : split.neutral) {
 
-
-     //start debug
-    /*
-    const std::size_t edge_values = 50;
-
-    for (const auto& input : prop_inputs[idx].inputs) {
-        info() << "  name=" << input.name
-              << " type=" << (input.type == ONNXInput::Type::Float ? "Float" : "Int64")
-              << " shape=[";
-
-        for (std::size_t i = 0; i < input.shape.size(); ++i) {
-            if (i != 0) info() << ", ";
-            info() << input.shape[i];
-        }
-
-        info() << "] data=[";
-
-        if (input.type == ONNXInput::Type::Float) {
-            const auto& data = input.float_data;
-            const std::size_t n = data.size();
-
-            if (n <= 2 * edge_values) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    if (i != 0) info() << ", ";
-                    info() << data[i];
-                }
-            } else {
-                for (std::size_t i = 0; i < edge_values; ++i) {
-                    if (i != 0) info() << ", ";
-                    info() << data[i];
-                }
-
-                info() << ", ... ";
-
-                for (std::size_t i = n - edge_values; i < n; ++i) {
-                    if (i != n - edge_values) info() << ", ";
-                    info() << data[i];
-                }
-
-                info() << " (" << n << " total)";
-            }
-        } else {
-            const auto& data = input.int64_data;
-            const std::size_t n = data.size();
-
-            if (n <= 2 * edge_values) {
-                for (std::size_t i = 0; i < n; ++i) {
-                    if (i != 0) info() << ", ";
-                    info() << data[i];
-                }
-            } else {
-                for (std::size_t i = 0; i < edge_values; ++i) {
-                    if (i != 0) info() << ", ";
-                    info() << data[i];
-                }
-
-                info() << ", ... ";
-
-                for (std::size_t i = n - edge_values; i < n; ++i) {
-                    if (i != n - edge_values) info() << ", ";
-                    info() << data[i];
-                }
-
-                info() << " (" << n << " total)";
-            }
-        }
-
-        info() << "]" << endmsg;
-    }
-        */
-    
-    // end debug
-
    
 
     auto prop_outputs = m_onnx_prop_neutral->runNamed(prop_inputs[idx].inputs);
@@ -584,6 +498,11 @@ struct PFHitML final:
     edm4hep::Vector3f predictedReferencePoint = computeNeutralReferencePoint(showers[idx]);
     edm4hep::Vector3f predictedDirection = computeNeutralDirection(predictedReferencePoint);
 
+    if (m_eventCounter < m_maxDumpEvents) {
+      std::vector<float> combined{predictedEnergy};
+      combined.insert(combined.end(), pidLogits.begin(), pidLogits.end());
+      dumpShowerRegressionOutput(combined, showers[idx].label_, "neutral_output", m_eventCounter);
+    }
 
 
     ParticleRecoInfo recoInfo = buildNeutralRecoInfo(showers[idx], pid.physicsClass, pid.score, predictedEnergy, predictedDirection, predictedReferencePoint);

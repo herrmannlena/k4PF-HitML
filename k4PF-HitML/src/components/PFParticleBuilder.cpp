@@ -111,6 +111,23 @@ static int chargeSignFromTrack(const edm4hep::TrackState& ts) {
   return (ts.omega > 0.f) ? +1 : -1;
 }
 
+// Energy-weighted position centroid of a set of calorimeter hits.
+static edm4hep::Vector3f energyWeightedBarycenter(const std::vector<edm4hep::CalorimeterHit>& hits) {
+  float sumE = 0.f, x = 0.f, y = 0.f, z = 0.f;
+  for (const auto& hit : hits) {
+    const auto pos = hit.getPosition();
+    const float e = hit.getEnergy();
+    sumE += e;
+    x += pos.x * e;
+    y += pos.y * e;
+    z += pos.z * e;
+  }
+  if (sumE <= 0.f) {
+    throw std::runtime_error("energyWeightedBarycenter: zero total calorimeter energy");
+  }
+  return {x / sumE, y / sumE, z / sumE};
+}
+
 
 
 ParticleRecoInfo buildChargedRecoInfo(
@@ -121,34 +138,34 @@ ParticleRecoInfo buildChargedRecoInfo(
   ParticleRecoInfo out{};
 
   const auto& trk = pickBestTrack(shower);
-  const auto& ts = trk.getTrackStates()[0]; // correct index??
+  const auto& ts = trk.getTrackStates()[0];      // AtIP -- momentum, matches Python's pos_pxpypz_at_vertex
+  const auto& tsCalo = trk.getTrackStates()[3];  // AtCalorimeter -- reference point
 
   const float mass = massFromPredictedClass(predictedClass);
 
   const auto p3 = momentumFromTrackState(ts);
   const float p = momentumMagnitude(p3);
 
-  //debugging
-  //std::cout << "  predictedClass = " << predictedClass << std::endl;
-  //std::cout << "  pidScore       = " << pidScore << std::endl;
-  //std::cout << "  nTracks        = " << shower.getTracks().size() << std::endl;
-  //std::cout << "  |p|    = " << p << std::endl;
-  //std::cout << "  charge = " << q << std::endl;
-  //std::cout << "  pdg    = " << pdg << std::endl;
-  //std::cout << "  mass   = " << mass << std::endl;
-  //std::cout << "  energy = " << energy << std::endl;
-
+  // Reference point = energy-weighted shower barycenter minus the picked
+  // track's calorimeter-entry position, matching Python's
+  // PickPAtDCA.predict formula (tools_for_regression.py: "barycenters -
+  // p_xyz"). Validated in Phase 3c to match numerically in raw mm.
+  const auto barycenter = energyWeightedBarycenter(shower.getCalorimeterHits());
 
   out.momentum = p3;
-  out.referencePoint = ts.referencePoint;
-  out.energy = p;  //this correct?
+  out.referencePoint = {
+      barycenter.x - tsCalo.referencePoint.x,
+      barycenter.y - tsCalo.referencePoint.y,
+      barycenter.z - tsCalo.referencePoint.z
+  };
+  out.energy = p;
   out.pidScore = pidScore;
   out.physicsClass = predictedClass;
   out.mass = mass;
- 
 
   return out;
 }
+
 
 void fillRecoParticle(
     edm4hep::ReconstructedParticleCollection& pfParticles,
@@ -198,6 +215,7 @@ edm4hep::Vector3f computeNeutralDirection(const edm4hep::Vector3f& referencePoin
   };
 }
 
+
 edm4hep::Vector3f computeNeutralReferencePoint(const Shower& shower) {
   const auto& ecalHits = shower.ecalHits_;
   const auto& hcalHits = shower.hcalHits_;
@@ -210,36 +228,9 @@ edm4hep::Vector3f computeNeutralReferencePoint(const Shower& shower) {
   // mask_ecal_only = (n_ecal_hits / (n_hcal_hits + n_ecal_hits)) > 0.05
   const bool useEcalOnly = (denom > 0.f) ? ((nEcal / denom) > 0.05f) : false;
 
-  float sumE = 0.f;
-  float x = 0.f;
-  float y = 0.f;
-  float z = 0.f;
-
-  auto accumulateHits = [&](const std::vector<edm4hep::CalorimeterHit>& hits) {
-    for (const auto& hit : hits) {
-      const auto pos = hit.getPosition();
-      const float e = hit.getEnergy();
-      sumE += e;
-      x += pos.x * e;
-      y += pos.y * e;
-      z += pos.z * e;
-    }
-  };
-
-  if (useEcalOnly) {
-    accumulateHits(ecalHits);
-  } else {
-    accumulateHits(shower.getCalorimeterHits());
-  }
-
-  if (sumE <= 0.f) {
-    throw std::runtime_error("Neutral shower has zero calorimeter energy");
-  }
-
-  return {x / sumE, y / sumE, z / sumE};
+  return useEcalOnly ? energyWeightedBarycenter(ecalHits)
+                      : energyWeightedBarycenter(shower.getCalorimeterHits());
 }
-
-
 
 ParticleRecoInfo buildNeutralRecoInfo(
     const Shower&,
