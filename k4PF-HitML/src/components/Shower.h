@@ -50,6 +50,7 @@ public:
 
     std::vector<int> types_;
     std::vector<float> betas_;
+    int64_t label_ = -1;  // DPC cluster label this shower was built from (validation/debugging)
 
 
     

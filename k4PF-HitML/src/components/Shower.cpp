@@ -48,51 +48,45 @@ void Shower::addCalorimeterHit(const edm4hep::CalorimeterHit& hit, const std::st
 
 const float Shower::getTrackMomentum_mean(){
 
-    //use other function
-    
-    float p = 0; //if zero tracks return 0
+    const float n_tracks = tracks_.size();
+
+    if (n_tracks == 0) {
+        return 0;
+    }
+
+    float p_sum = 0;
     for (const auto& track : tracks_) {
-        //should be one or zero
-        //trackstate at IP?
-        auto trackstate = track.getTrackStates()[1];
+        auto trackstate = track.getTrackStates()[0];
         float omega = trackstate.omega;
         float phi = trackstate.phi;
         float tanLambda = trackstate.tanLambda;
 
-        float pt = 2.99792e-4 * std::abs(2.0/omega);  // B filed 2T
+        float pt = 2.99792e-4 * std::abs(2.0/omega);  // B field 2T
         float px = std::cos(phi) * pt;
         float py = std::sin(phi) * pt;
         float pz = tanLambda  * pt;
-        p = std::sqrt(px * px + py * py + pz * pz);
-    }
-    
-    float n_tracks = tracks_.size();
-
-
-    if(n_tracks == 0){
-        return p;
+        p_sum += std::sqrt(px * px + py * py + pz * pz);
     }
 
-
-    return p/n_tracks;
+    return p_sum / n_tracks;
 }
 
 
 const float Shower::Chi2_mean(){
 
-    float n_tracks = tracks_.size();
-    float chi2 = 0;
+    const float n_tracks = tracks_.size();
 
-    for (const auto& track : tracks_) {
-        chi2 = track.getChi2();
-    }
-
-    if(n_tracks == 0){
+    if (n_tracks == 0) {
         return 0;
     }
 
+    float chi2_sum = 0;
+    for (const auto& track : tracks_) {
+        const float ndf = track.getNdf();
+        chi2_sum += (ndf > 0.f) ? track.getChi2() / ndf : 0.f;
+    }
 
-    return chi2/n_tracks;
+    return chi2_sum / n_tracks;
 
 }
 
@@ -170,7 +164,7 @@ const std::tuple<std::vector<float>, std::vector<float>> Shower::get_ep(){
        
     for (const auto& track_i : tracks_) {
       
-        auto trackstate = track_i.getTrackStates()[1];
+        auto trackstate = track_i.getTrackStates()[0];
         float omega = trackstate.omega;
         float phi = trackstate.phi;
         float tanLambda = trackstate.tanLambda;

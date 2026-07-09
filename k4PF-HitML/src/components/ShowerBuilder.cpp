@@ -51,6 +51,7 @@ std::vector<Shower> ShowerBuilder::buildShowers(const torch::Tensor& cluster_lab
       //shower object
       showers.emplace_back();
       Shower& shower_i = showers.back();
+      shower_i.label_ = label;
      
       for (int64_t j = 0; j < indices.size(0); ++j) {
   

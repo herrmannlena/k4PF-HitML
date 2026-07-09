@@ -8,7 +8,8 @@ public:
     Clustering(float d_c, float rho_min, float delta_min, float core_radius = 0.5f);
 
     torch::Tensor get_clustering(const std::vector<float>& output_vector,
-                                 const std::vector<float>& energies);
+                                 const std::vector<float>& energies,
+                                 int64_t dumpEventIdx = -1);
 
     torch::Tensor remove_bad_tracks_from_cluster(const torch::Tensor& labels_in,
                                                  const std::vector<float>& hit_type,

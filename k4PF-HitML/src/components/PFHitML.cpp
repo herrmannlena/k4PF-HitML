@@ -100,6 +100,65 @@ void dumpClusteringOutput(const std::vector<float>& out0, std::size_t eventIdx) 
     }
 }
 
+// Validation dump: DPC cluster labels after remove_bad_tracks_from_cluster
+// (the pre-correction labels/rho/delta/nearest/id are dumped separately by
+// Clustering::get_clustering itself, into *_dpc.txt).
+void dumpClusterLabelsPost(const torch::Tensor& labels, std::size_t eventIdx) {
+    const auto labelsAcc = labels.accessor<int64_t, 1>();
+    const std::size_t n = static_cast<std::size_t>(labels.size(0));
+    std::ofstream out("dump/cpp_event_" + std::to_string(eventIdx) + "_dpc_label_post.txt");
+    out << n << " 1\n";
+    for (std::size_t i = 0; i < n; ++i) {
+        out << labelsAcc[static_cast<int64_t>(i)] << "\n";
+    }
+}
+
+
+void dumpShowerRegressionInputs(const std::vector<Shower>& showers,
+                                 const std::vector<PropertyInputs>& prop_inputs,
+                                 std::size_t eventIdx) {
+    auto findInput = [](const std::vector<ONNXInput>& inputs, const std::string& name) -> const ONNXInput& {
+        for (const auto& in : inputs) {
+            if (in.name == name) return in;
+        }
+        throw std::runtime_error("dumpShowerRegressionInputs: missing input " + name);
+    };
+
+    for (std::size_t i = 0; i < showers.size() && i < prop_inputs.size(); ++i) {
+        const int64_t label = showers[i].label_;
+        const auto& inputs = prop_inputs[i].inputs;
+
+        const auto& hitsPoints = findInput(inputs, "hits_points").float_data;        // [N,3]
+        const auto& hitType    = findInput(inputs, "hit_type").int64_data;           // [N]
+        const auto& p          = findInput(inputs, "p").float_data;                  // [N]
+        const auto& e          = findInput(inputs, "e").float_data;                  // [N]
+        const auto& global     = findInput(inputs, "x_global_features").float_data;  // [16]
+
+        const std::size_t n = hitType.size();
+
+        {
+            std::ofstream out("dump/cpp_event_" + std::to_string(eventIdx) +
+                               "_shower_" + std::to_string(label) + "_hits.txt");
+            out << std::setprecision(9);
+            out << n << " 6\n";  // columns: x y z hit_type p e
+            for (std::size_t k = 0; k < n; ++k) {
+                out << hitsPoints[3 * k + 0] << " " << hitsPoints[3 * k + 1] << " " << hitsPoints[3 * k + 2]
+                    << " " << hitType[k] << " " << p[k] << " " << e[k] << "\n";
+            }
+        }
+        {
+            std::ofstream out("dump/cpp_event_" + std::to_string(eventIdx) +
+                               "_shower_" + std::to_string(label) + "_global.txt");
+            out << std::setprecision(9);
+            out << 1 << " " << global.size() << "\n";
+            for (std::size_t k = 0; k < global.size(); ++k) {
+                out << (k ? " " : "") << global[k];
+            }
+            out << "\n";
+        }
+    }
+}
+
 }  // namespace
 
  /**
@@ -242,11 +301,17 @@ struct PFHitML final:
 
 
     Clustering clusterer(0.1f, 0.05f, 0.4f, 0.5f);
-    torch::Tensor cluster_label = clusterer.get_clustering(outputs[0], inputs_features["node_energy"]); // length of hits [000 3 7 7 7 7 10 2 2 2 ..]
+    const int64_t dpcDumpIdx =
+        (m_eventCounter < m_maxDumpEvents) ? static_cast<int64_t>(m_eventCounter) : -1;
+    torch::Tensor cluster_label = clusterer.get_clustering(outputs[0], inputs_features["node_energy"], dpcDumpIdx); // length of hits [000 3 7 7 7 7 10 2 2 2 ..]
 
     //cluster postprocessing
     // error now in bad tracks from cluster, input feature as one hot?
     torch::Tensor cluster_label_corrected = clusterer.remove_bad_tracks_from_cluster(cluster_label, inputs_features["hit_type"], inputs_features["node_energy"], inputs_features["node_p"]);
+
+    if (m_eventCounter < m_maxDumpEvents) {
+      dumpClusterLabelsPost(cluster_label_corrected, m_eventCounter);
+    }
 
     auto n_changed = (cluster_label != cluster_label_corrected).sum().item<int64_t>();
     std::cout << "originallabels: " << cluster_label.sizes() << std::endl;
@@ -293,6 +358,9 @@ struct PFHitML final:
     //look here: https://github.com/selvaggi/mlpf/blob/main/src/utils/post_clustering_features.py
     auto prop_inputs = extractor.prepare_prop(showers); //determine and convert inputs for regression model
 
+    if (m_eventCounter < m_maxDumpEvents) {
+      dumpShowerRegressionInputs(showers, prop_inputs, m_eventCounter);
+    }
     
     //STILL NEED TO SEPERATE NEUTRAL CHARGED! THIS IS ALSO AN OLD MODEL.. NOW I have two sepertae ones so convert them first
     // before further updating stuff..
