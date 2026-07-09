@@ -22,8 +22,10 @@
 # Script to setup key4hep nightly environment that allows to use ONNX
 
 
-source /cvmfs/sw-nightlies.hsf.org/key4hep/setup.sh
+#source /cvmfs/sw-nightlies.hsf.org/key4hep/setup.sh
 # source /cvmfs/sw.hsf.org/key4hep/setup.sh -r 2024-11-28
+#source /cvmfs/sw.hsf.org/key4hep/setup.sh -r 2026-02-01
+source /cvmfs/sw.hsf.org/key4hep/setup.sh
 
 
 ONNXRUNTIME_PATH=$(dirname $(python -c 'import onnxruntime; print(f"{onnxruntime.__file__}")'))

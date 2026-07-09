@@ -15,12 +15,15 @@ Clustering::Clustering(float d_c, float rho_min, float delta_min, float core_rad
 std::vector<float> Clustering::compute_distance_matrix(const torch::Tensor& X) const {
     const auto positions = X.accessor<float, 2>();
     const std::size_t n_points = static_cast<std::size_t>(X.size(0));
-    std::vector<float> distances(n_points * n_points, 0.0f);
-    //put nan on diagonal
-    //std::vector<float> distances(
-    //    n_points * n_points,
-    //    std::numeric_limits<float>::quiet_NaN()
-    //);
+    // NaN diagonal matches Python's dc.distance_matrix (sklearn pairwise_distances
+    // with the diagonal overwritten to NaN): `distance < d_c_` is false for NaN,
+    // so compute_local_density() correctly excludes each hit's own energy from
+    // its own density. The NaN is reset to 0 later in get_clustering(), right
+    // before the core-radius membership check, exactly mirroring Python's
+    // `D[np.isnan(D)] = 0` -- this makes each cluster center trivially its own
+    // core member (self-distance 0) without letting self-density leak in above.
+    std::vector<float> distances(n_points * n_points, std::numeric_limits<float>::quiet_NaN());
+    
 
     for (std::size_t i = 0; i < n_points; ++i) {
         for (std::size_t j = i + 1; j < n_points; ++j) {
@@ -54,17 +57,21 @@ std::vector<float> Clustering::compute_local_density(const std::vector<float>& d
     return rho;
 }
 
-//this function could differ -> check
+
 std::pair<std::vector<float>, std::vector<int64_t>> Clustering::distance_to_larger_density(
     const std::vector<float>& distances,
     const std::vector<float>& rho,
     std::size_t n_points) const {
     std::vector<float> delta(n_points, 0.0f);
     std::vector<int64_t> nearest(n_points, -1);
+
+    if (n_points == 0) {
+        return {delta, nearest};
+    }
+
     std::vector<std::size_t> order(n_points);
     std::iota(order.begin(), order.end(), 0);
-
-    std::sort(order.begin(), order.end(), [&rho](std::size_t lhs, std::size_t rhs) {
+    std::stable_sort(order.begin(), order.end(), [&rho](std::size_t lhs, std::size_t rhs) {
         return rho[lhs] > rho[rhs];
     });
 
@@ -73,20 +80,23 @@ std::pair<std::vector<float>, std::vector<int64_t>> Clustering::distance_to_larg
         max_distance = std::max(max_distance, distance);
     }
 
-    if (n_points == 0) {
-        return {delta, nearest};
-    }
-
-    delta[order[0]] = max_distance;
-    nearest[order[0]] = static_cast<int64_t>(order[0]);
-
-    for (std::size_t rank = 1; rank < n_points; ++rank) {
+    for (std::size_t rank = 0; rank < n_points; ++rank) {
         const std::size_t index = order[rank];
         float best_distance = std::numeric_limits<float>::max();
         int64_t best_neighbor = -1;
 
+        // The sort bounds the search to a safe superset of "strictly higher
+        // rho" candidates (ranks before this one); the explicit inequality
+        // below is what actually decides membership, so ties in rho (e.g.
+        // several isolated zero-energy hits) are never treated as
+        // higher-density in either direction -- matching Python's strict
+        // `rho[j] > rho[i]` test exactly, independent of how std::sort
+        // happens to order the tied entries.
         for (std::size_t higher_rank = 0; higher_rank < rank; ++higher_rank) {
             const std::size_t higher_index = order[higher_rank];
+            if (!(rho[higher_index] > rho[index])) {
+                continue;
+            }
             const float distance = distances[index * n_points + higher_index];
             if (distance < best_distance) {
                 best_distance = distance;
@@ -94,8 +104,18 @@ std::pair<std::vector<float>, std::vector<int64_t>> Clustering::distance_to_larg
             }
         }
 
-        delta[index] = best_distance;
-        nearest[index] = best_neighbor;
+        if (best_neighbor == -1) {
+            // No point with strictly higher density (the global peak, or
+            // anything tied with it) falls back to the max pairwise distance
+            // in the event and is left unassigned (-1) in `nearest`. Such
+            // points always fail the rho > rho_min gate in cluster_centers()
+            // whenever more than one point ties for the top density, so this
+            // fallback never actually changes which points become centers.
+            delta[index] = max_distance;
+        } else {
+            delta[index] = best_distance;
+            nearest[index] = best_neighbor;
+        }
     }
 
     return {delta, nearest};
@@ -109,6 +129,9 @@ std::vector<int64_t> Clustering::cluster_centers(const std::vector<float>& rho,
             centers.push_back(static_cast<int64_t>(i));
         }
     }
+    std::stable_sort(centers.begin(), centers.end(), [&rho](int64_t lhs, int64_t rhs) {
+        return rho[static_cast<std::size_t>(lhs)] > rho[static_cast<std::size_t>(rhs)];
+    });
     return centers;
 }
 
@@ -298,13 +321,6 @@ torch::Tensor Clustering::remove_bad_tracks_from_cluster(
         int n_muon_hits = 0;
         std::vector<int64_t> track_nodes;
 
-      
-        for (auto node : track_nodes) {
-            const float p_track = p_hits[node];
-            const float diff = (p_track > 0.0f) ? std::abs(e_cluster - p_track) / p_track : -1.0f;
-            const float sigma_4 = (p_track > 0.0f) ? 4.0f * 0.5f / std::sqrt(p_track) : -1.0f;
-          
-        }
 
         for (int64_t node = 0; node < n_nodes; ++node) {
             if (labels_acc[node] != cluster_id) continue;

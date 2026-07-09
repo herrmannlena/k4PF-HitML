@@ -47,6 +47,7 @@
 #include <unordered_map>
 #include <limits>
 #include <fstream>
+#include <iomanip>
 #include "EvaluationSummary.h"
 
 
@@ -64,6 +65,42 @@ using TrackTruthLinkCollection = edm4hep::TrackMCParticleLinkCollection;
 
 namespace rv = ROOT::VecOps;
 
+namespace {
+
+// Validation dump: raw clustering-model inputs, one row per hit/track node,
+// in the exact order they were fed to ONNX (pos_hits_xyz, hit_type, h_scalar).
+void dumpClusteringInputs(const ClusteringInputs& clustering_input, std::size_t eventIdx) {
+    const auto& pos = clustering_input.inputs.at(0).float_data;       // pos_hits_xyz [N,3]
+    const auto& hit_type = clustering_input.inputs.at(1).int64_data;  // hit_type [N]
+    const auto& h_scalar = clustering_input.inputs.at(2).float_data;  // h_scalar [N,10]
+    const std::size_t n = static_cast<std::size_t>(clustering_input.batch_size);
+
+    std::ofstream out("dump/cpp_event_" + std::to_string(eventIdx) + "_input.txt");
+    out << std::setprecision(9);
+    out << n << " 14\n";  // columns: x y z hit_type h_scalar[0..9]
+    for (std::size_t i = 0; i < n; ++i) {
+        out << pos[3 * i + 0] << " " << pos[3 * i + 1] << " " << pos[3 * i + 2]
+            << " " << hit_type[i];
+        for (int c = 0; c < 10; ++c) {
+            out << " " << h_scalar[10 * i + static_cast<std::size_t>(c)];
+        }
+        out << "\n";
+    }
+}
+
+// Validation dump: raw clustering-model output (x, y, z, beta) per node.
+void dumpClusteringOutput(const std::vector<float>& out0, std::size_t eventIdx) {
+    const std::size_t n_rows = out0.size() / 4;
+    std::ofstream out("dump/cpp_event_" + std::to_string(eventIdx) + "_output.txt");
+    out << std::setprecision(9);
+    out << n_rows << " 4\n";
+    for (std::size_t i = 0; i < n_rows; ++i) {
+        out << out0[4 * i + 0] << " " << out0[4 * i + 1] << " " << out0[4 * i + 2]
+            << " " << out0[4 * i + 3] << "\n";
+    }
+}
+
+}  // namespace
 
  /**
   output: collection
@@ -174,6 +211,9 @@ struct PFHitML final:
     //convert inputs to expected shape 
     auto clustering_input = extractor.convertModelInputs(inputs_features);
 
+    if (m_eventCounter < m_maxDumpEvents) {
+      dumpClusteringInputs(clustering_input, m_eventCounter);
+    }
    
     ///////////////////////////////////////////////////
     ////////// Inference Clustering Model //////////
@@ -185,49 +225,12 @@ struct PFHitML final:
     
     std::vector<std::vector<float>>  outputs = m_onnx->runNamed(clustering_input.inputs);
 
-    //std::cout << "output" << outputs[0][0] <<"" << outputs[0][1]  << "size" << outputs[0].size()<<std::endl;
     //get two outputs, first one has shape (N,4) (three coordinates in embedding space + beta)
     // second output is  dummy for pred_energy_corr (not needed at this stage)
 
-    //for debugging
-    /*
-    const auto& out0 = outputs.at(0);
-    const std::size_t n_rows = out0.size() / 4;
-
-    
-    std::cout << "onnx out rows=" << n_rows << " cols=4" << std::endl;
-
-    for (std::size_t i = 0; i < std::min<std::size_t>(5, n_rows); ++i) {
-        std::cout << i << ": "
-                  << out0[4*i + 0] << " "
-                  << out0[4*i + 1] << " "
-                  << out0[4*i + 2] << " "
-                  << out0[4*i + 3] << std::endl;
+    if (m_eventCounter < m_maxDumpEvents) {
+      dumpClusteringOutput(outputs.at(0), m_eventCounter);
     }
-
-    for (std::size_t i = (n_rows > 5 ? n_rows - 5 : 0); i < n_rows; ++i) {
-        std::cout << i << ": "
-                  << out0[4*i + 0] << " "
-                  << out0[4*i + 1] << " "
-                  << out0[4*i + 2] << " "
-                  << out0[4*i + 3] << std::endl;
-    }
-
-    const int event_id = m_eventCounter;
-
-    const std::string path = "dump/cpp_event_" + std::to_string(event_id) + ".txt";
-
-    std::ofstream out(path);
-    out << n_rows << " " << 4 << "\n";
-
-    for (std::size_t i = 0; i < n_rows; ++i) {
-        out << out0[4 * i + 0] << " "
-            << out0[4 * i + 1] << " "
-            << out0[4 * i + 2] << " "
-            << out0[4 * i + 3] << "\n";
-    }
-            */
-                
 
     
 
@@ -603,11 +606,11 @@ struct PFHitML final:
     this, "model_path_properties_charged", "/eos/user/l/lherrman/FCC/models/energy_correction_paper_charged_pid.onnx",
     "Path to the ONNX model for charged energy regression and PID"};
 
+  Gaudi::Property<std::size_t> m_maxDumpEvents{
+    this, "maxDumpEvents", 10,
+    "Number of leading events to dump validation tensors for into dump/ (0 disables dumping)"};
+
   
-  
-
-
-
 
 
 };
