@@ -244,7 +244,13 @@ ParticleRecoInfo buildNeutralRecoInfo(
 
   const float mass = massFromPredictedClass(predictedClass);
 
+  const float pMag = std::sqrt(std::max(0.f, predictedEnergy * predictedEnergy - mass * mass));
 
+  out.momentum = {
+      predictedDirection.x * pMag,
+      predictedDirection.y * pMag,
+      predictedDirection.z * pMag
+  };
   out.referencePoint = predictedReferencePoint;
   out.direction = predictedDirection;
 
