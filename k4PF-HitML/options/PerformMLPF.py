@@ -37,7 +37,10 @@ parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model us
 #parser_group.add_argument("--onnx_model_properties", help="Path to ONNX model used for energy regression and PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_full.onnx")
 parser_group.add_argument("--onnx_model_properties_neutral", help="Path to neutral ONNX model used for energy regression and PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_paper_neutral.onnx")
 parser_group.add_argument("--onnx_model_properties_charged", help="Path to charged ONNX model used for PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_paper_charged_pid.onnx")
-
+parser_group.add_argument("--dpc_d_c", type=float, default=0.1, help="DPC clustering: Gaussian kernel bandwidth for local density")
+parser_group.add_argument("--dpc_rho_min", type=float, default=0.05, help="DPC clustering: minimum local density for a point to be a cluster center")
+parser_group.add_argument("--dpc_delta_min", type=float, default=0.4, help="DPC clustering: minimum distance-to-higher-density for a point to be a cluster center")
+parser_group.add_argument("--dpc_core_radius", type=float, default=0.5, help="DPC clustering: max distance to a center for a hit to be kept as a core (non-halo) member")
 args = parser.parse_known_args()[0]
 
 svc = IOSvc("IOSvc")
@@ -49,6 +52,10 @@ Multitransformer = PFHitML("PFHitML",
                             model_path_clustering=args.onnx_model_clustering,
                             model_path_properties_neutral=args.onnx_model_properties_neutral,
                             model_path_properties_charged=args.onnx_model_properties_charged,
+                            dpc_d_c=args.dpc_d_c,
+                            dpc_rho_min=args.dpc_rho_min,
+                            dpc_delta_min=args.dpc_delta_min,
+                            dpc_core_radius=args.dpc_core_radius,
                     )
 
 

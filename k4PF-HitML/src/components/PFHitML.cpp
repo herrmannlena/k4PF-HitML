@@ -353,7 +353,7 @@ struct PFHitML final:
     // expect output tensor of length N with cluster labels
 
 
-    Clustering clusterer(0.1f, 0.05f, 0.4f, 0.5f);
+    Clustering clusterer(dpc_d_c.value(), dpc_rho_min.value(), dpc_delta_min.value(), dpc_core_radius.value());
     const int64_t dpcDumpIdx =
         (m_eventCounter < m_maxDumpEvents) ? static_cast<int64_t>(m_eventCounter) : -1;
     torch::Tensor cluster_label = clusterer.get_clustering(outputs[0], inputs_features["node_energy"], dpcDumpIdx); // length of hits [000 3 7 7 7 7 10 2 2 2 ..]
@@ -597,7 +597,22 @@ struct PFHitML final:
     this, "maxDumpEvents", 10,
     "Number of leading events to dump validation tensors for into dump/ (0 disables dumping)"};
 
-  
+  Gaudi::Property<float> dpc_d_c{
+    this, "dpc_d_c", 0.1f,
+    "DPC clustering: Gaussian kernel bandwidth for local density"};
+
+  Gaudi::Property<float> dpc_rho_min{
+    this, "dpc_rho_min", 0.05f,
+    "DPC clustering: minimum local density for a point to be a cluster center"};
+
+  Gaudi::Property<float> dpc_delta_min{
+    this, "dpc_delta_min", 0.4f,
+    "DPC clustering: minimum distance-to-higher-density for a point to be a cluster center"};
+
+  Gaudi::Property<float> dpc_core_radius{
+    this, "dpc_core_radius", 0.5f,
+    "DPC clustering: max distance to a center for a hit to be kept as a core (non-halo) member"};
+
 
 
 };
