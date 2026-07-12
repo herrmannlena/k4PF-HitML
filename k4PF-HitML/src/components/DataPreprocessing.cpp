@@ -47,7 +47,7 @@ DataPreprocessing::DataPreprocessing(
     float bFieldTesla)
     : ecalbarrel_(EcalBarrel_hits), hcalbarrel_(HcalBarrel_hits),
     ecalendcap_(EcalEndcap_hits), hcalendcap_(HcalEndcap_hits), hcalother_(HcalOther_hits), 
-    muons_(Muon_hits), tracks_(tracks){}
+    muons_(Muon_hits), tracks_(tracks), bFieldTesla_(bFieldTesla){}
 
 
     
