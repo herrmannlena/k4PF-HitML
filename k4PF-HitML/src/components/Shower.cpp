@@ -46,7 +46,7 @@ void Shower::addCalorimeterHit(const edm4hep::CalorimeterHit& hit, const std::st
     
 }
 
-const float Shower::getTrackMomentum_mean(){
+const float Shower::getTrackMomentum_mean(float bFieldTesla){
 
     const float n_tracks = tracks_.size();
 
@@ -61,7 +61,7 @@ const float Shower::getTrackMomentum_mean(){
         float phi = trackstate.phi;
         float tanLambda = trackstate.tanLambda;
 
-        float pt = 2.99792e-4 * std::abs(2.0/omega);  // B field 2T
+        float pt = 2.99792e-4f * std::abs(bFieldTesla/omega);
         float px = std::cos(phi) * pt;
         float py = std::sin(phi) * pt;
         float pz = tanLambda  * pt;
@@ -147,7 +147,7 @@ const std::tuple<std::vector<float>, std::vector<float>, std::vector<float>> Sho
 
 
 
-const std::tuple<std::vector<float>, std::vector<float>> Shower::get_ep(){
+const std::tuple<std::vector<float>, std::vector<float>> Shower::get_ep(float bFieldTesla){
     
     std::vector<float> calo_e;
     std::vector<float> calo_p;
@@ -169,7 +169,7 @@ const std::tuple<std::vector<float>, std::vector<float>> Shower::get_ep(){
         float phi = trackstate.phi;
         float tanLambda = trackstate.tanLambda;
     
-        float pt = 2.99792e-4 * std::abs(2.0/omega);  // B filed 2T
+        float pt = 2.99792e-4f * std::abs(bFieldTesla/omega);
         float px = std::cos(phi) * pt;
         float py = std::sin(phi) * pt;
         float pz = tanLambda  * pt;

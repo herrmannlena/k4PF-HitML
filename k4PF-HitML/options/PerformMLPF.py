@@ -37,10 +37,18 @@ parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model us
 #parser_group.add_argument("--onnx_model_properties", help="Path to ONNX model used for energy regression and PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_full.onnx")
 parser_group.add_argument("--onnx_model_properties_neutral", help="Path to neutral ONNX model used for energy regression and PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_paper_neutral.onnx")
 parser_group.add_argument("--onnx_model_properties_charged", help="Path to charged ONNX model used for PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_paper_charged_pid.onnx")
+
 parser_group.add_argument("--dpc_d_c", type=float, default=0.1, help="DPC clustering: Gaussian kernel bandwidth for local density")
 parser_group.add_argument("--dpc_rho_min", type=float, default=0.05, help="DPC clustering: minimum local density for a point to be a cluster center")
 parser_group.add_argument("--dpc_delta_min", type=float, default=0.4, help="DPC clustering: minimum distance-to-higher-density for a point to be a cluster center")
 parser_group.add_argument("--dpc_core_radius", type=float, default=0.5, help="DPC clustering: max distance to a center for a hit to be kept as a core (non-halo) member")
+
+parser_group.add_argument("--truth_iou_threshold", type=float, default=0.25, help="Truth matching: minimum IoU for a shower-to-MCParticle match")
+parser_group.add_argument("--truth_barrel_radius", type=float, default=2150., help="Truth matching: detector barrel radius [mm]")
+parser_group.add_argument("--truth_n_barrel_sides", type=int, default=12, help="Truth matching: number of barrel polygon sides")
+parser_group.add_argument("--truth_endcap_z", type=float, default=2307., help="Truth matching: detector endcap |z| [mm]")
+
+parser_group.add_argument("--bFieldTesla", type=float, default=2.0, help="Magnetic field strength [T] used for track pT reconstruction from track curvature")
 args = parser.parse_known_args()[0]
 
 svc = IOSvc("IOSvc")
@@ -56,6 +64,11 @@ Multitransformer = PFHitML("PFHitML",
                             dpc_rho_min=args.dpc_rho_min,
                             dpc_delta_min=args.dpc_delta_min,
                             dpc_core_radius=args.dpc_core_radius,
+                            truth_iou_threshold=args.truth_iou_threshold,
+                            truth_barrel_radius=args.truth_barrel_radius,
+                            truth_n_barrel_sides=args.truth_n_barrel_sides,
+                            truth_endcap_z=args.truth_endcap_z,
+                            bFieldTesla=args.bFieldTesla,
                     )
 
 

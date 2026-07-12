@@ -56,7 +56,8 @@ class DataPreprocessing {
     const edm4hep::CalorimeterHitCollection& HcalEndcap_hits,
     const edm4hep::CalorimeterHitCollection& HcalOther_hits,
     const edm4hep::CalorimeterHitCollection& Muon_hits,
-    const edm4hep::TrackCollection& tracks);
+    const edm4hep::TrackCollection& tracks,
+    float bFieldTesla = 2.0f);
   
 
     PreprocessedData extract() const;
@@ -87,6 +88,7 @@ class DataPreprocessing {
     const edm4hep::CalorimeterHitCollection& hcalother_;
     const edm4hep::CalorimeterHitCollection& muons_;
     const edm4hep::TrackCollection& tracks_;
+    float bFieldTesla_;
    
 
   };

@@ -47,7 +47,8 @@ PIDPrediction decodePIDLogits(
 ParticleRecoInfo buildChargedRecoInfo(
     const Shower& shower,
     int predictedClass,
-    float pidScore
+    float pidScore,
+    float bFieldTesla = 2.0f
 );
 
 ParticleRecoInfo buildNeutralRecoInfo(

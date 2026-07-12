@@ -69,8 +69,8 @@ PIDPrediction decodePIDLogits(
 
 
 
-static edm4hep::Vector3f momentumFromTrackState(const edm4hep::TrackState& ts) {
-  const float pt = 2.99792e-4f * std::abs(2.f / ts.omega); // for B=2T
+static edm4hep::Vector3f momentumFromTrackState(const edm4hep::TrackState& ts, float bFieldTesla) {
+  const float pt = 2.99792e-4f * std::abs(bFieldTesla / ts.omega);
   const float px = std::cos(ts.phi) * pt;
   const float py = std::sin(ts.phi) * pt;
   const float pz = ts.tanLambda * pt;
@@ -133,7 +133,8 @@ static edm4hep::Vector3f energyWeightedBarycenter(const std::vector<edm4hep::Cal
 ParticleRecoInfo buildChargedRecoInfo(
     const Shower& shower,
     int predictedClass,
-    float pidScore
+    float pidScore,
+    float bFieldTesla
 ) {
   ParticleRecoInfo out{};
 
@@ -143,7 +144,7 @@ ParticleRecoInfo buildChargedRecoInfo(
 
   const float mass = massFromPredictedClass(predictedClass);
 
-  const auto p3 = momentumFromTrackState(ts);
+  const auto p3 = momentumFromTrackState(ts, bFieldTesla);
   const float p = momentumMagnitude(p3);
 
   // Reference point = energy-weighted shower barycenter minus the picked

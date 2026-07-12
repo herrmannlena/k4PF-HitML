@@ -314,7 +314,8 @@ struct PFHitML final:
       HcalEndcap_hits, 
       HcalOther_hits,
       Muon_hits,
-      tracks
+      tracks,
+      bFieldTesla.value()
     );
     
     //get input variables
@@ -387,10 +388,11 @@ struct PFHitML final:
 
     //truth linking
     TruthMatchConfig truthCfg;
-    truthCfg.iouThreshold = 0.25f;
-    truthCfg.barrelRadius = 2150.f;
-    truthCfg.nBarrelSides = 12;
-    truthCfg.endCapZ = 2307.f;
+    truthCfg.iouThreshold = truth_iou_threshold.value();
+    truthCfg.barrelRadius = truth_barrel_radius.value();
+    truthCfg.nBarrelSides = truth_n_barrel_sides.value();
+    truthCfg.endCapZ = truth_endcap_z.value();
+
 
     const auto showerTruthMatches = matchShowersByIoU(
         showers,
@@ -456,7 +458,7 @@ struct PFHitML final:
       dumpChargedRefPointDebug(showers[idx], showers[idx].label_, m_eventCounter);
     }
 
-    ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score);
+    ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score, bFieldTesla.value());
 
     evalBuilder.addRecoResult(idx, recoInfo);
 
@@ -612,6 +614,26 @@ struct PFHitML final:
   Gaudi::Property<float> dpc_core_radius{
     this, "dpc_core_radius", 0.5f,
     "DPC clustering: max distance to a center for a hit to be kept as a core (non-halo) member"};
+
+  Gaudi::Property<float> truth_iou_threshold{
+    this, "truth_iou_threshold", 0.25f,
+    "Truth matching: minimum IoU for a shower-to-MCParticle match"};
+
+  Gaudi::Property<float> truth_barrel_radius{
+    this, "truth_barrel_radius", 2150.f,
+    "Truth matching: detector barrel radius [mm] used to decide if a vertex is inside the calorimeter"};
+
+  Gaudi::Property<int> truth_n_barrel_sides{
+    this, "truth_n_barrel_sides", 12,
+    "Truth matching: number of barrel polygon sides used for the in-calorimeter check"};
+
+  Gaudi::Property<float> truth_endcap_z{
+    this, "truth_endcap_z", 2307.f,
+    "Truth matching: detector endcap |z| [mm] used to decide if a vertex is inside the calorimeter"};
+
+  Gaudi::Property<float> bFieldTesla{
+    this, "bFieldTesla", 2.0f,
+    "Magnetic field strength [T] used for track pT reconstruction from track curvature (omega)"};
 
 
 

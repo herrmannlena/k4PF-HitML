@@ -43,7 +43,8 @@ DataPreprocessing::DataPreprocessing(
     const edm4hep::CalorimeterHitCollection& HcalEndcap_hits,
     const edm4hep::CalorimeterHitCollection& HcalOther_hits,
     const edm4hep::CalorimeterHitCollection& Muon_hits,
-    const edm4hep::TrackCollection& tracks)
+    const edm4hep::TrackCollection& tracks,
+    float bFieldTesla)
     : ecalbarrel_(EcalBarrel_hits), hcalbarrel_(HcalBarrel_hits),
     ecalendcap_(EcalEndcap_hits), hcalendcap_(HcalEndcap_hits), hcalother_(HcalOther_hits), 
     muons_(Muon_hits), tracks_(tracks){}
@@ -128,7 +129,7 @@ PreprocessedData DataPreprocessing::extract() const {
         float tanLambda = trackstate.tanLambda;
 
 
-        float pt = 2.99792e-4 * std::abs(2.0/omega);  // B filed 2T
+        float pt = 2.99792e-4f * std::abs(bFieldTesla_/omega);
         float px = std::cos(phi) * pt;
         float py = std::sin(phi) * pt;
         float pz = tanLambda  * pt;
@@ -483,7 +484,7 @@ PreprocessedData DataPreprocessing::extract() const {
 
         std::vector<std::vector<float>> hit_one_hot = one_hot_encode(shower_i.types_, 4); //3-6
 
-        auto [e_vector, p_vector] = shower_i.get_ep();
+        auto [e_vector, p_vector] = shower_i.get_ep(bFieldTesla_);
 
         std::vector<float> betas = shower_i.betas_; //9
 
@@ -526,7 +527,7 @@ PreprocessedData DataPreprocessing::extract() const {
 
         int total_hits = num_hits + num_tracks;   // include tracks or not? 
 
-        float track_p = shower_i.getTrackMomentum_mean(); 
+        float track_p = shower_i.getTrackMomentum_mean(bFieldTesla_); 
 
         float dispersion_ecal = disperion(shower_i, shower_i.ecalHits_); 
         float dispersion_hcal = disperion(shower_i, shower_i.hcalHits_); 
