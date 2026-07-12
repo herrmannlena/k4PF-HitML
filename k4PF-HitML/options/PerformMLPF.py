@@ -49,6 +49,15 @@ parser_group.add_argument("--truth_n_barrel_sides", type=int, default=12, help="
 parser_group.add_argument("--truth_endcap_z", type=float, default=2307., help="Truth matching: detector endcap |z| [mm]")
 
 parser_group.add_argument("--bFieldTesla", type=float, default=2.0, help="Magnetic field strength [T] used for track pT reconstruction from track curvature")
+
+parser_group.add_argument("--reassign_low_p_muons", dest="reassign_low_p_muons", action="store_true", default=True,
+                          help="Reassign charged candidates predicted as muon with momentum below "
+                               "--muon_to_charged_hadron_p_threshold to charged hadron (default: on)")
+parser_group.add_argument("--no_reassign_low_p_muons", dest="reassign_low_p_muons", action="store_false",
+                          help="Disable --reassign_low_p_muons")
+parser_group.add_argument("--muon_to_charged_hadron_p_threshold", type=float, default=1.0,
+                          help="Momentum threshold [GeV] below which a predicted muon is reassigned "
+                               "to charged hadron (if --reassign_low_p_muons is set)")
 args = parser.parse_known_args()[0]
 
 svc = IOSvc("IOSvc")
@@ -69,6 +78,8 @@ Multitransformer = PFHitML("PFHitML",
                             truth_n_barrel_sides=args.truth_n_barrel_sides,
                             truth_endcap_z=args.truth_endcap_z,
                             bFieldTesla=args.bFieldTesla,
+                            reassign_low_p_muons=args.reassign_low_p_muons,
+                            muon_to_charged_hadron_p_threshold=args.muon_to_charged_hadron_p_threshold,
                     )
 
 

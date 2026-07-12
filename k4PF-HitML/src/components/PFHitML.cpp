@@ -458,7 +458,7 @@ struct PFHitML final:
       dumpChargedRefPointDebug(showers[idx], showers[idx].label_, m_eventCounter);
     }
 
-    ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score, bFieldTesla.value());
+    ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score, bFieldTesla.value(), reassign_low_p_muons.value(), muon_to_charged_hadron_p_threshold.value());
 
     evalBuilder.addRecoResult(idx, recoInfo);
 
@@ -635,7 +635,13 @@ struct PFHitML final:
     this, "bFieldTesla", 2.0f,
     "Magnetic field strength [T] used for track pT reconstruction from track curvature (omega)"};
 
+  Gaudi::Property<bool> reassign_low_p_muons{
+    this, "reassign_low_p_muons", true,
+    "Reassign charged candidates predicted as muon with momentum below muon_to_charged_hadron_p_threshold to charged hadron"};
 
+  Gaudi::Property<float> muon_to_charged_hadron_p_threshold{
+    this, "muon_to_charged_hadron_p_threshold", 1.0f,
+    "Momentum threshold [GeV] below which a predicted muon is reassigned to charged hadron (if reassign_low_p_muons is set)"};
 
 };
 

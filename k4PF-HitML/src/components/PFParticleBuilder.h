@@ -48,7 +48,9 @@ ParticleRecoInfo buildChargedRecoInfo(
     const Shower& shower,
     int predictedClass,
     float pidScore,
-    float bFieldTesla = 2.0f
+    float bFieldTesla = 2.0f,
+    bool reassignLowPMuons = true,
+    float muonToChargedHadronPThreshold = 1.0f
 );
 
 ParticleRecoInfo buildNeutralRecoInfo(

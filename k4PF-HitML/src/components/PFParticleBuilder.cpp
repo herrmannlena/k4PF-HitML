@@ -134,7 +134,9 @@ ParticleRecoInfo buildChargedRecoInfo(
     const Shower& shower,
     int predictedClass,
     float pidScore,
-    float bFieldTesla
+    float bFieldTesla,
+    bool reassignLowPMuons,
+    float muonToChargedHadronPThreshold
 ) {
   ParticleRecoInfo out{};
 
@@ -142,10 +144,16 @@ ParticleRecoInfo buildChargedRecoInfo(
   const auto& ts = trk.getTrackStates()[0];      // AtIP -- momentum, matches Python's pos_pxpypz_at_vertex
   const auto& tsCalo = trk.getTrackStates()[3];  // AtCalorimeter -- reference point
 
-  const float mass = massFromPredictedClass(predictedClass);
-
   const auto p3 = momentumFromTrackState(ts, bFieldTesla);
   const float p = momentumMagnitude(p3);
+
+  //reassign low momentum muon to CH
+  int effectiveClass = predictedClass;
+  if (reassignLowPMuons && predictedClass == 4 && p < muonToChargedHadronPThreshold) {
+    effectiveClass = 1;
+  }
+  const float mass = massFromPredictedClass(effectiveClass);
+
 
   // Reference point = energy-weighted shower barycenter minus the picked
   // track's calorimeter-entry position, matching Python's
@@ -161,7 +169,7 @@ ParticleRecoInfo buildChargedRecoInfo(
   };
   out.energy = p;
   out.pidScore = pidScore;
-  out.physicsClass = predictedClass;
+  out.physicsClass = effectiveClass;
   out.mass = mass;
 
   return out;
