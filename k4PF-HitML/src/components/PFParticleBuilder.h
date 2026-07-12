@@ -11,6 +11,7 @@
 #include "ONNXHelper.h" 
 #include "edm4hep/ReconstructedParticleCollection.h"
 #include "edm4hep/ParticleIDCollection.h"
+#include "edm4hep/Track.h"
 
 class Shower;
 
@@ -23,6 +24,12 @@ struct ParticleRecoInfo {
   float mass{0.f};
   float pidScore{0.f};
   int physicsClass{0};
+
+  // Track(s) to attach to the output particle -- for charged candidates,
+  // just the single track that drove momentum/mass (see pickBestTrack in
+  // PFParticleBuilder.cpp), not every track that happened to land in the
+  // same DPC cluster. Empty for neutral candidates.
+  std::vector<edm4hep::Track> tracks{};
 
 };
 

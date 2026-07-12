@@ -141,6 +141,7 @@ ParticleRecoInfo buildChargedRecoInfo(
   ParticleRecoInfo out{};
 
   const auto& trk = pickBestTrack(shower);
+  out.tracks = {trk};
   const auto& ts = trk.getTrackStates()[0];      // AtIP -- momentum, matches Python's pos_pxpypz_at_vertex
   const auto& tsCalo = trk.getTrackStates()[3];  // AtCalorimeter -- reference point
 
@@ -179,7 +180,7 @@ ParticleRecoInfo buildChargedRecoInfo(
 void fillRecoParticle(
     edm4hep::ReconstructedParticleCollection& pfParticles,
     edm4hep::ParticleIDCollection& pfParticleIDs,
-    const Shower& shower,
+    const Shower&,
     const ParticleRecoInfo& recoInfo
 ) {
   auto rp = pfParticles.create();
@@ -190,7 +191,7 @@ void fillRecoParticle(
   rp.setMass(recoInfo.mass);
   rp.setReferencePoint(recoInfo.referencePoint);
 
-  for (const auto& trk : shower.getTracks()) {
+  for (const auto& trk : recoInfo.tracks) {
     rp.addToTracks(trk);
   }
 
