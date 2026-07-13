@@ -45,6 +45,7 @@
 #include "TruthMatcher.h"
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 #include <limits>
 #include <fstream>
 #include <iomanip>
@@ -228,7 +229,8 @@ struct PFHitML final:
       std::tuple<
       edm4hep::ReconstructedParticleCollection,
       edm4hep::ParticleIDCollection,
-      RecoTruthLinkCollection
+      RecoTruthLinkCollection,
+      edm4hep::TrackCollection
       >(
 
     const edm4hep::CalorimeterHitCollection&,
@@ -249,7 +251,8 @@ struct PFHitML final:
       std::tuple<
       edm4hep::ReconstructedParticleCollection,
       edm4hep::ParticleIDCollection,
-      RecoTruthLinkCollection
+      RecoTruthLinkCollection,
+      edm4hep::TrackCollection
       > (
         const edm4hep::CalorimeterHitCollection&,
         const edm4hep::CalorimeterHitCollection&,
@@ -277,7 +280,8 @@ struct PFHitML final:
           {
             KeyValues("HitPF", {"HitPF"}),
             KeyValues("HitPFIDs", {"HitPFIDs"}),  // Outputs
-            KeyValues("HitPFMCTruthLink", {"HitPFMCTruthLink"})
+            KeyValues("HitPFMCTruthLink", {"HitPFMCTruthLink"}),
+            KeyValues("HitPFUnassociatedTracks", {"HitPFUnassociatedTracks"})
           }  
         ) {}
 
@@ -285,7 +289,8 @@ struct PFHitML final:
   std::tuple<
   edm4hep::ReconstructedParticleCollection,
   edm4hep::ParticleIDCollection,
-  RecoTruthLinkCollection
+  RecoTruthLinkCollection,
+  edm4hep::TrackCollection
   > operator()(
     const edm4hep::CalorimeterHitCollection& EcalBarrel_hits,
     const edm4hep::CalorimeterHitCollection& HcalBarrel_hits,
@@ -542,12 +547,36 @@ struct PFHitML final:
 
   const auto evalRows = evalBuilder.finalize();
 
+  // Tracks that never ended up in any shower -- either DPC never assigned
+  // them a cluster (pure noise), or remove_bad_tracks_from_cluster() kicked
+  // them back out for failing the E/p consistency check (e.g. a track that
+  // curls up before reaching the calorimeter). Not attached to any HitPF
+  // candidate; written out as a subset collection (references into
+  // SiTracks_Refitted, no copies) for downstream recovery, e.g. invariant
+  // mass calculations that want to include tracks HitPF itself drops.
+  auto HitPFUnassociatedTracks = edm4hep::TrackCollection{};
+  HitPFUnassociatedTracks.setSubsetCollection();
+  if (writeUnassociatedTracks.value()) {
+    std::unordered_set<ObjectIDKey, ObjectIDKeyHash> usedTrackKeys;
+    for (const auto& shower_i : showers) {
+      for (const auto& trk : shower_i.getTracks()) {
+        usedTrackKeys.insert(makeKey(trk.getObjectID()));
+      }
+    }
+    for (const auto& trk : tracks) {
+      if (usedTrackKeys.find(makeKey(trk.getObjectID())) == usedTrackKeys.end()) {
+        HitPFUnassociatedTracks.push_back(trk);
+      }
+    }
+    info() << "Unassociated tracks: " << HitPFUnassociatedTracks.size()
+           << " / " << tracks.size() << endmsg;
+  }
+
 
   ++m_eventCounter;
     
 
-
-  return {std::move(HitPF), std::move(HitPFIDs), std::move(HitPFMCTruthLink)};  //outputs
+  return {std::move(HitPF), std::move(HitPFIDs), std::move(HitPFMCTruthLink), std::move(HitPFUnassociatedTracks)};  //outputs
 
   }
   
@@ -643,6 +672,10 @@ struct PFHitML final:
     this, "muon_to_charged_hadron_p_threshold", 1.0f,
     "Momentum threshold [GeV] below which a predicted muon is reassigned to charged hadron (if reassign_low_p_muons is set)"};
 
+  Gaudi::Property<bool> writeUnassociatedTracks{
+    this, "writeUnassociatedTracks", false,
+    "Write tracks that were not assigned to any shower (DPC noise or failed the E/p consistency "
+    "check) into the HitPFUnassociatedTracks output collection"};
 };
 
 

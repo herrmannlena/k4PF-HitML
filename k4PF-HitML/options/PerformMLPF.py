@@ -58,6 +58,13 @@ parser_group.add_argument("--no_reassign_low_p_muons", dest="reassign_low_p_muon
 parser_group.add_argument("--muon_to_charged_hadron_p_threshold", type=float, default=1.0,
                           help="Momentum threshold [GeV] below which a predicted muon is reassigned "
                                "to charged hadron (if --reassign_low_p_muons is set)")
+
+parser_group.add_argument("--write_unassociated_tracks", dest="writeUnassociatedTracks", action="store_true",
+                          default=False,
+                          help="Write tracks not assigned to any shower into the HitPFUnassociatedTracks "
+                               "output collection (default: off)")
+parser_group.add_argument("--no_write_unassociated_tracks", dest="writeUnassociatedTracks", action="store_false",
+                          help="Disable --write_unassociated_tracks")
 args = parser.parse_known_args()[0]
 
 svc = IOSvc("IOSvc")
@@ -80,6 +87,7 @@ Multitransformer = PFHitML("PFHitML",
                             bFieldTesla=args.bFieldTesla,
                             reassign_low_p_muons=args.reassign_low_p_muons,
                             muon_to_charged_hadron_p_threshold=args.muon_to_charged_hadron_p_threshold,
+                            writeUnassociatedTracks=args.writeUnassociatedTracks,
                     )
 
 
