@@ -24,6 +24,8 @@ struct ParticleRecoInfo {
   float mass{0.f};
   float pidScore{0.f};
   int physicsClass{0};
+  float charge{0.f};
+  int pdg{0};
 
   // Track(s) to attach to the output particle -- for charged candidates,
   // just the single track that drove momentum/mass (see pickBestTrack in
@@ -31,12 +33,16 @@ struct ParticleRecoInfo {
   // same DPC cluster. Empty for neutral candidates.
   std::vector<edm4hep::Track> tracks{};
 
+  std::vector<float> pidScores{};
+
 };
 
 struct PIDPrediction {
   int localIndex{0};     // index inside the NN output, e.g. 0,1,2
   int physicsClass{0};   // mapped class, e.g. 0,1,4 or 2,3
   float score{0.f};      // softmax probability of winning class
+  std::vector<float> scores{};    // full softmax vector, one entry per class
+                            
 };
 
 const std::vector<float>& findPIDOutput(

@@ -464,6 +464,7 @@ struct PFHitML final:
     }
 
     ParticleRecoInfo recoInfo = buildChargedRecoInfo(showers[idx], pid.physicsClass, pid.score, bFieldTesla.value(), reassign_low_p_muons.value(), muon_to_charged_hadron_p_threshold.value());
+    recoInfo.pidScores = pid.scores;
 
     evalBuilder.addRecoResult(idx, recoInfo);
 
@@ -513,7 +514,8 @@ struct PFHitML final:
 
 
     ParticleRecoInfo recoInfo = buildNeutralRecoInfo(showers[idx], pid.physicsClass, pid.score, predictedEnergy, predictedDirection, predictedReferencePoint);
-
+    recoInfo.pidScores = pid.scores;
+    
     evalBuilder.addRecoResult(idx, recoInfo);
 
     const auto recoIndex = HitPF.size();

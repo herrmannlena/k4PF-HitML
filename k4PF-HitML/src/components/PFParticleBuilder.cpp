@@ -22,6 +22,25 @@ static float massFromPredictedClass(int predictedClass) {
 }
 
 
+static int pdgFromChargedClass(int predictedClass, int chargeSign) {
+  switch (predictedClass) {
+    case 0: return (chargeSign < 0) ? 11 : -11;    // e- / e+
+    case 1: return (chargeSign > 0) ? 211 : -211;  // pi+ / pi-
+    case 4: return (chargeSign < 0) ? 13 : -13;    // mu- / mu+
+    default: return 0;
+  }
+}
+
+
+static int pdgFromNeutralClass(int predictedClass) {
+  switch (predictedClass) {
+    case 2: return 2112;  // neutron
+    case 3: return 22;    // photon
+    default: return 0;
+  }
+}
+
+
 const std::vector<float>& findPIDOutput(
     const ONNXHelper& model,
     const std::vector<std::vector<float>>& outputs
@@ -58,10 +77,18 @@ PIDPrediction decodePIDLogits(
     sumExp += std::exp(x - maxLogit);
   }
 
+  std::vector<float> scores(logits.size(), 0.f);
+  if (sumExp > 0.f) {
+    for (std::size_t i = 0; i < logits.size(); ++i) {
+      scores[i] = std::exp(logits[i] - maxLogit) / sumExp;
+    }
+  }
+
   PIDPrediction pred;
   pred.localIndex = localIndex;
   pred.physicsClass = classMap[localIndex];
-  pred.score = (sumExp > 0.f) ? 1.f / sumExp : 0.f;
+  pred.score = scores[localIndex];
+  pred.scores = std::move(scores);
   return pred;
 }
 
@@ -154,6 +181,7 @@ ParticleRecoInfo buildChargedRecoInfo(
     effectiveClass = 1;
   }
   const float mass = massFromPredictedClass(effectiveClass);
+  const int chargeSign = chargeSignFromTrack(ts);
 
 
   // Reference point = energy-weighted shower barycenter minus the picked
@@ -172,6 +200,8 @@ ParticleRecoInfo buildChargedRecoInfo(
   out.pidScore = pidScore;
   out.physicsClass = effectiveClass;
   out.mass = mass;
+  out.charge = static_cast<float>(chargeSign);
+  out.pdg = pdgFromChargedClass(effectiveClass, chargeSign);
 
   return out;
 }
@@ -189,6 +219,7 @@ void fillRecoParticle(
   rp.setMomentum(recoInfo.momentum);
   rp.setEnergy(recoInfo.energy);
   rp.setMass(recoInfo.mass);
+  rp.setCharge(recoInfo.charge);
   rp.setReferencePoint(recoInfo.referencePoint);
 
   for (const auto& trk : recoInfo.tracks) {
@@ -196,12 +227,16 @@ void fillRecoParticle(
   }
 
   rp.setGoodnessOfPID(recoInfo.pidScore);
+  rp.setPDG(recoInfo.pdg);
 
 
   pid.setLikelihood(recoInfo.pidScore);
   pid.setType(recoInfo.physicsClass);
+  pid.setPDG(recoInfo.pdg);
 
-
+  for (float s : recoInfo.pidScores) {
+    pid.addToParameters(s);
+  }
 
 }
 
@@ -268,6 +303,7 @@ ParticleRecoInfo buildNeutralRecoInfo(
   out.pidScore = pidScore;
   out.physicsClass = predictedClass;
   out.mass = mass;
+  out.pdg = pdgFromNeutralClass(predictedClass);
 
   return out;
 }
