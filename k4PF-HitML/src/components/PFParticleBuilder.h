@@ -27,10 +27,6 @@ struct ParticleRecoInfo {
   float charge{0.f};
   int pdg{0};
 
-  // Track(s) to attach to the output particle -- for charged candidates,
-  // just the single track that drove momentum/mass (see pickBestTrack in
-  // PFParticleBuilder.cpp), not every track that happened to land in the
-  // same DPC cluster. Empty for neutral candidates.
   std::vector<edm4hep::Track> tracks{};
 
   std::vector<float> pidScores{};

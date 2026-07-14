@@ -28,13 +28,9 @@ from k4FWCore.parseArgs import parser
 parser_group = parser.add_argument_group("PerformMLPF.py custom options")
 parser_group.add_argument("--inputFiles", nargs="+", metavar=("file1", "file2"), help="One or multiple input files",
                           default=["/eos/user/l/lherrman/FCC/datageneration/condor/10/out_reco_edm4hep_REC.edm4hep.root"])
-                          #this is Dolores model Hss, adapt the default input file
-                       # default=["/afs/cern.ch/work/l/lherrman/private/inference/data/Hss_rec_16809_40.root"])
 parser_group.add_argument("--outputFile", default="output_HitPF.root")
 parser_group.add_argument("--num_ev", type=int, help="Number of events to process (-1 means all)", default=-1)
-#parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model used for clustering", default="/eos/user/l/lherrman/FCC/models/clustering_model_Hss.onnx")
 parser_group.add_argument("--onnx_model_clustering", help="Path to ONNX model used for clustering", default="/eos/user/l/lherrman/FCC/models/clustering_paper.onnx")
-#parser_group.add_argument("--onnx_model_properties", help="Path to ONNX model used for energy regression and PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_full.onnx")
 parser_group.add_argument("--onnx_model_properties_neutral", help="Path to neutral ONNX model used for energy regression and PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_paper_neutral.onnx")
 parser_group.add_argument("--onnx_model_properties_charged", help="Path to charged ONNX model used for PID", default="/eos/user/l/lherrman/FCC/models/energy_correction_paper_charged_pid.onnx")
 

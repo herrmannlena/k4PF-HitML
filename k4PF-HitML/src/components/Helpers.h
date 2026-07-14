@@ -17,7 +17,6 @@
  * limitations under the License.
  */
 
- /*get input variables from json*/
 
  #ifndef HELPERS_H
  #define HELPERS_H

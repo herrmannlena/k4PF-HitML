@@ -65,8 +65,7 @@ class DataPreprocessing {
     
     ClusteringInputs convertModelInputs(std::map<std::string, std::vector<float>> features) const;
     std::vector<PropertyInputs> prepare_prop(std::vector<Shower> shower) const;
-    // ONNXHelper::Tensor<long> m_inputShapes;  
-
+ 
  
    // helper function to return collections
     const edm4hep::CalorimeterHitCollection& ecalBarrel()   const { return ecalbarrel_; }

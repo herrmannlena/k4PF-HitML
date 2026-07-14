@@ -36,7 +36,7 @@
      throw std::runtime_error("Path to ONNX model cannot be empty!");
    Ort::SessionOptions options;
    options.SetIntraOpNumThreads(1);
-   std::string model{model_path}; // fixes a poor Ort experimental API
+   std::string model{model_path}; 
    m_session = std::make_unique<Ort::Session>(*m_env, model.c_str(), options);
  
    // Get input names and shapes
@@ -46,7 +46,7 @@
    for (size_t i = 0; i < m_session->GetInputCount(); ++i) {
      // get input names
      const auto input_name =
-         m_session->GetInputNameAllocated(i, m_allocator).release(); // release the ownership of the pointer
+         m_session->GetInputNameAllocated(i, m_allocator).release(); 
      m_inputNodeStrings.emplace_back(input_name);
  
      // get input shapes
@@ -124,8 +124,7 @@
        throw std::runtime_error("Input array '" + name + "' has a wrong size of " + std::to_string(value.size()) +
                                 ", expected " + std::to_string(expected_len));
  
-     //const OrtMemoryInfo* fInfo;
-     //fInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+    
      auto input_tensor =
          Ort::Value::CreateTensor<float>(m_cpu_mem_info, value.data(), value.size(), input_dims.data(), input_dims.size());
      if (!input_tensor.IsTensor())

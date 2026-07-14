@@ -30,8 +30,6 @@ std::vector<Shower> ShowerBuilder::buildShowers(const torch::Tensor& cluster_lab
         continue;
       }
   
-      // Create a PF shower object
-      //auto pf = MLPF.create();
   
       // Mask hits belonging to this cluster
       torch::Tensor mask    = (cluster_label == label);           // [00011000]
@@ -41,12 +39,7 @@ std::vector<Shower> ShowerBuilder::buildShowers(const torch::Tensor& cluster_lab
       auto idxView = indices.accessor<int64_t, 1>();
       const auto& hit_mapping = preproc_.hit_mapping;
 
-      
-  
-      // assign the hits to the shower object.
-      //understand which properties you can add like mean x of clusters..
-      // I think I would fill all of this in a shower class and in the end if all values are fixed and assigned pass and fill to MLPF object
-      
+    
       //shower object
       showers.emplace_back();
       Shower& shower_i = showers.back();

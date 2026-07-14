@@ -185,9 +185,7 @@ ParticleRecoInfo buildChargedRecoInfo(
 
 
   // Reference point = energy-weighted shower barycenter minus the picked
-  // track's calorimeter-entry position, matching Python's
-  // PickPAtDCA.predict formula (tools_for_regression.py: "barycenters -
-  // p_xyz"). Validated in Phase 3c to match numerically in raw mm.
+  // track's calorimeter-entry position
   const auto barycenter = energyWeightedBarycenter(shower.getCalorimeterHits());
 
   out.momentum = p3;

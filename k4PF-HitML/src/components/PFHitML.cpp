@@ -215,11 +215,6 @@ void dumpShowerRegressionOutput(const std::vector<float>& values,
 
 }  // namespace
 
- /**
-  output: collection
-  */
-
-
 
 
 
@@ -240,7 +235,7 @@ struct PFHitML final:
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::TrackCollection&,
-    const edm4hep::MCParticleCollection&, //brauche ich die noch?
+    const edm4hep::MCParticleCollection&, 
     const CaloTruthLinkCollection&,
     const TrackTruthLinkCollection&
 
@@ -365,7 +360,6 @@ struct PFHitML final:
     torch::Tensor cluster_label = clusterer.get_clustering(outputs[0], inputs_features["node_energy"], dpcDumpIdx); // length of hits [000 3 7 7 7 7 10 2 2 2 ..]
 
     //cluster postprocessing
-    // error now in bad tracks from cluster, input feature as one hot?
     torch::Tensor cluster_label_corrected = clusterer.remove_bad_tracks_from_cluster(cluster_label, inputs_features["hit_type"], inputs_features["node_energy"], inputs_features["node_p"]);
 
     if (m_eventCounter < m_maxDumpEvents) {
@@ -373,13 +367,9 @@ struct PFHitML final:
     }
 
 
-    //the pipeline:
-    //after clustering, form graphs of hits belonging to one cluster
-
     //this function gets the clusters, within this function create shower instances, set x,y,z,..
     ShowerBuilder builder(extractor, inputs);
     auto showers = builder.buildShowers(cluster_label_corrected, outputs[0]);
-    //std::cout << "shower output" << showers.size() <<std::endl;
 
     auto split = splitShowersByTrackContent(showers);
 
@@ -407,9 +397,7 @@ struct PFHitML final:
     //// ENERGY REGRESSION & PID ///////
     ////////////////////////////////////
 
-     
-
-    
+  
     //look here: https://github.com/selvaggi/mlpf/blob/main/src/utils/post_clustering_features.py
     auto prop_inputs = extractor.prepare_prop(showers); //determine and convert inputs for regression model
 
@@ -417,8 +405,6 @@ struct PFHitML final:
       dumpShowerRegressionInputs(showers, prop_inputs, m_eventCounter);
     }
     
-    //STILL NEED TO SEPERATE NEUTRAL CHARGED! THIS IS ALSO AN OLD MODEL.. NOW I have two sepertae ones so convert them first
-    // before further updating stuff..
 
     //////////////////////////////////////////////////
     ////////// Inference Property Model //////////////
@@ -515,13 +501,8 @@ struct PFHitML final:
 
   const auto evalRows = evalBuilder.finalize();
 
-  // Tracks that never ended up in any shower -- either DPC never assigned
-  // them a cluster (pure noise), or remove_bad_tracks_from_cluster() kicked
-  // them back out for failing the E/p consistency check (e.g. a track that
-  // curls up before reaching the calorimeter). Not attached to any HitPF
-  // candidate; written out as a subset collection (references into
-  // SiTracks_Refitted, no copies) for downstream recovery, e.g. invariant
-  // mass calculations that want to include tracks HitPF itself drops.
+  // Tracks that never ended up in any shower written out as a subset collection for downstream recovery, e.g. invariant
+  // mass calculations.
   auto HitPFUnassociatedTracks = edm4hep::TrackCollection{};
   HitPFUnassociatedTracks.setSubsetCollection();
   if (writeUnassociatedTracks.value()) {
@@ -552,16 +533,12 @@ struct PFHitML final:
   StatusCode initialize() override {
     info() << "Initializing PFHitML and loading model..." << endmsg;
     
-    //Create the onnx 
-    //fix input names, can you get rid of it?
     m_onnx = std::make_unique<ONNXHelper>(model_path_clustering.value());
 
     m_onnx_prop_neutral = std::make_unique<ONNXHelper>(model_path_properties_neutral.value());
 
     m_onnx_prop_charged = std::make_unique<ONNXHelper>(model_path_properties_charged.value());
 
-
-    
 
    
     return StatusCode::SUCCESS;
@@ -649,4 +626,3 @@ struct PFHitML final:
 
 DECLARE_COMPONENT(PFHitML)
 
-//cleanup? get rid of helper json thing? check if this with input name in onnx part works ous

@@ -40,7 +40,6 @@ public:
 
     const std::tuple<std::vector<float>, std::vector<float>> get_ep(float bFieldTesla = 2.0f);
 
-    // later: add tracks, energy sums, etc.
 
     std::vector<edm4hep::CalorimeterHit> caloHits_;
     std::vector<edm4hep::CalorimeterHit> ecalHits_;

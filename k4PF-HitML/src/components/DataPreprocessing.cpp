@@ -174,16 +174,9 @@ PreprocessedData DataPreprocessing::extract() const {
   }
 
 
-  //this is not the correct type for ONNX helper.. try alternative
 
  ClusteringInputs DataPreprocessing::convertModelInputs(std::map<std::string, std::vector<float>> features) const {
 
-
-    //one hot
-    //torch::Tensor hit_type_one_hot = torch::one_hot(
-    //    hit_type_feature.to(torch::kInt64), // input tensor of integer class indices
-    //    /* num_classes = */ 5
-    //).to(torch::kFloat32); 
 
     ClusteringInputs packed;
     
@@ -403,7 +396,7 @@ PreprocessedData DataPreprocessing::extract() const {
         float eta = calculate_eta(mean_x, mean_y, mean_z); 
         float phi = calculate_phi(mean_x, mean_y); 
 
-        //add the global features, take right order!
+        //add the global features
         
 
         global_features.push_back(ECAL_e_fraction); //0

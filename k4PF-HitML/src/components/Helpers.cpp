@@ -25,24 +25,6 @@
 
  
 
-/*
- float mean(std::vector<const edm4hep::CalorimeterHit*> collection){
-  
-  float temp = 0; 
-  float num_var = collection.size();
-
-  for(const auto& track_i : collection){
-    temp += track_i;   
-    //get p
-  }
-
-  if (num_var == 0) return 0.0f;
-  return temp / num_var;
-
- }
-  */
-
-
  float mean_var( std::vector<float> obs){
 
   int n_hits = obs.size();

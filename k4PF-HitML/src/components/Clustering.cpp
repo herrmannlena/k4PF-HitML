@@ -18,12 +18,9 @@ std::vector<float> Clustering::compute_distance_matrix(const torch::Tensor& X) c
     const auto positions = X.accessor<float, 2>();
     const std::size_t n_points = static_cast<std::size_t>(X.size(0));
     // NaN diagonal matches Python's dc.distance_matrix (sklearn pairwise_distances
-    // with the diagonal overwritten to NaN): `distance < d_c_` is false for NaN,
-    // so compute_local_density() correctly excludes each hit's own energy from
-    // its own density. The NaN is reset to 0 later in get_clustering(), right
+    // with the diagonal overwritten to NaN). The NaN is reset to 0 later in get_clustering(), right
     // before the core-radius membership check, exactly mirroring Python's
-    // `D[np.isnan(D)] = 0` -- this makes each cluster center trivially its own
-    // core member (self-distance 0) without letting self-density leak in above.
+    // `D[np.isnan(D)] = 0` 
     std::vector<float> distances(n_points * n_points, std::numeric_limits<float>::quiet_NaN());
     
 
@@ -87,13 +84,7 @@ std::pair<std::vector<float>, std::vector<int64_t>> Clustering::distance_to_larg
         float best_distance = std::numeric_limits<float>::max();
         int64_t best_neighbor = -1;
 
-        // The sort bounds the search to a safe superset of "strictly higher
-        // rho" candidates (ranks before this one); the explicit inequality
-        // below is what actually decides membership, so ties in rho (e.g.
-        // several isolated zero-energy hits) are never treated as
-        // higher-density in either direction -- matching Python's strict
-        // `rho[j] > rho[i]` test exactly, independent of how std::sort
-        // happens to order the tied entries.
+
         for (std::size_t higher_rank = 0; higher_rank < rank; ++higher_rank) {
             const std::size_t higher_index = order[higher_rank];
             if (!(rho[higher_index] > rho[index])) {
@@ -107,12 +98,6 @@ std::pair<std::vector<float>, std::vector<int64_t>> Clustering::distance_to_larg
         }
 
         if (best_neighbor == -1) {
-            // No point with strictly higher density (the global peak, or
-            // anything tied with it) falls back to the max pairwise distance
-            // in the event and is left unassigned (-1) in `nearest`. Such
-            // points always fail the rho > rho_min gate in cluster_centers()
-            // whenever more than one point ties for the top density, so this
-            // fallback never actually changes which points become centers.
             delta[index] = max_distance;
         } else {
             delta[index] = best_distance;
