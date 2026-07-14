@@ -21,7 +21,6 @@ std::vector<Shower> ShowerBuilder::buildShowers(const torch::Tensor& cluster_lab
   
     auto uniqueView = uniqueTensor.accessor<int64_t, 1>();
   
-    std::cout << "num particles" << num_part <<std::endl;
     std::vector<Shower> showers;
    
     for (int64_t i = 0; i < num_part; ++i) {

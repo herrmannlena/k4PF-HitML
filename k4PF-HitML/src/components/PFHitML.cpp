@@ -372,12 +372,7 @@ struct PFHitML final:
       dumpClusterLabelsPost(cluster_label_corrected, m_eventCounter);
     }
 
-    auto n_changed = (cluster_label != cluster_label_corrected).sum().item<int64_t>();
-    std::cout << "originallabels: " << cluster_label.sizes() << std::endl;
-    std::cout << "cluster output shape: " << cluster_label_corrected.sizes() << std::endl;
-    std::cout << "changed labels: " << n_changed << std::endl;
 
- 
     //the pipeline:
     //after clustering, form graphs of hits belonging to one cluster
 
@@ -474,24 +469,16 @@ struct PFHitML final:
     const auto reco = HitPF.at(recoIndex);
     fillRecoTruthLink(HitPFMCTruthLink, reco, showerTruthMatches[idx]);
 
-    
-    //debug
-
     const auto pidObj = HitPFIDs.at(recoIndex);
-    const auto r = reco.getReferencePoint();
     
-    info() << "=== C++ final charged properties === "
+    debug() << "=== C++ final charged properties === "
           << "idx=" << idx
           << " calibrated_E=" << reco.getEnergy()
-          //<< " ref_pt=(" << r.x << ", " << r.y << ", " << r.z << ")"
           << " momentum=" << recoInfo.momentum
           << " mass=" << recoInfo.mass
           << " pid_class=" << pidObj.getType()
           << " pid_likelihood=" << pidObj.getLikelihood()
           << endmsg;
-
-  
-    
   }
 
 
@@ -523,27 +510,6 @@ struct PFHitML final:
 
     const auto reco = HitPF.at(recoIndex);
     fillRecoTruthLink(HitPFMCTruthLink, reco, showerTruthMatches[idx]);
-
-
-    //begin debug
-    /*
-
-    const auto pidObj = HitPFIDs.at(recoIndex);
-    const auto r = reco.getReferencePoint();
-
-    info() << "=== C++ final neutral properties === "
-          << "idx=" << idx
-          << " calibrated_E=" << reco.getEnergy()
-          << " ref_pt=(" << r.x << ", " << r.y << ", " << r.z << ")"
-          << " direction=" << recoInfo.direction
-          << " pid_class=" << pidObj.getType()
-          << " pid_likelihood=" << pidObj.getLikelihood()
-          << endmsg;
-    */
-    //end debug
-
-
-
 
   }
 
@@ -627,7 +593,7 @@ struct PFHitML final:
     "Path to the ONNX model for charged energy regression and PID"};
 
   Gaudi::Property<std::size_t> m_maxDumpEvents{
-    this, "maxDumpEvents", 10,
+    this, "maxDumpEvents", 0,
     "Number of leading events to dump validation tensors for into dump/ (0 disables dumping)"};
 
   Gaudi::Property<float> dpc_d_c{

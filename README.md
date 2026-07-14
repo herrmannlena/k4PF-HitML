@@ -169,25 +169,15 @@ so the two collections are necessarily linked **positionally** -- `HitPF[i]`'s
 PID hypothesis is `HitPFIDs[i]`, created together in the same call to
 `fillRecoParticle` (`PFParticleBuilder.cpp`), with no relation to follow
 instead. A few of `HitPF`'s field conventions are also deliberate choices
-carried over from the Python reference implementation (`HitPF`/`HitPF_plotting`)
-and are **not** the same as what you'd get from Pandora on the same events --
-documented here so a side-by-side comparison isn't mistaken for a bug in the
-port.
+carried over from the Python reference implementation.
 
 - **Reference point** (`referencePoint`): for charged particles this is the
   energy-weighted shower barycenter *minus* the driving track's
   calorimeter-entry position (`PFParticleBuilder.cpp::buildChargedRecoInfo`),
   matching Python's `PickPAtDCA.predict()` (`tools_for_regression.py`:
-  `barycenters - p_xyz`). `HitPF_plotting`'s own dataframe
-  (`shower_dataframe.py::_compute_pandora_momentum`) keeps this as a column
-  entirely separate from Pandora's actual reference point (`pandora_ref_pt`,
-  copied in from Pandora's own reconstruction purely for comparison) -- the two
-  were never meant to be equal, even in the Python reference. Don't expect
-  `HitPF`'s `referencePoint` to numerically match Pandora's. For neutral
+  `barycenters - p_xyz`). For neutral
   particles, `referencePoint` is instead an absolute shower-barycenter position
-  (`computeNeutralReferencePoint`), which is a different kind of quantity again
-  (an absolute position vs. an offset) -- this asymmetry between the charged
-  and neutral cases is inherited from Python, not introduced in the C++ port.
+  (`computeNeutralReferencePoint`)
 
 - **Energy** (`energy`): for neutral particles this is true total energy
   (the regression model's calibrated output). For charged particles it is
@@ -204,11 +194,7 @@ port.
   (`PFParticleBuilder.cpp::massFromPredictedClass`,
   `pdgFromChargedClass`/`pdgFromNeutralClass`). "Charged hadron"/"neutral
   hadron" are broad PID categories, not individual species identification
-  (no dE/dx or similar is available at this stage) -- this matches Pandora's
-  own convention of assigning the pion mass/PDG to its generic charged-hadron
-  category, but if you compare against a Pandora config that assumes K⁰_L
-  instead of neutron for neutral hadrons, expect a small systematic
-  difference in neutral-hadron energy/momentum conversion. PDG is set on
+  (no dE/dx or similar is available at this stage). PDG is set on
   both `HitPF` (`ReconstructedParticle.PDG`, a plain member in this edm4hep
   version) and `HitPFIDs` (`ParticleID.PDG`) -- same value, two collections,
   since there's no relation between them to avoid the duplication (see above).

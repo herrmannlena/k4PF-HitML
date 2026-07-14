@@ -242,13 +242,7 @@ PreprocessedData DataPreprocessing::extract() const {
         torch::kFloat32
     ).clone();
 
-    /*
-    torch::Tensor hit_type = torch::from_blob(
-        const_cast<float*>(features.at("hit_type").data()),
-        {static_cast<long>(features.at("hit_type").size())},
-        torch::kFloat32
-    ).clone().unsqueeze(1);
-    */
+  
 
     torch::Tensor hit_type_feature = torch::from_blob(
     const_cast<float*>(features.at("hit_type").data()),
@@ -259,137 +253,9 @@ PreprocessedData DataPreprocessing::extract() const {
     torch::Tensor hit_type_one_hot = torch::one_hot(
     hit_type_feature.to(torch::kInt64), 5
     ).to(torch::kFloat32);
- 
-    
-    //debug
-    /*
-    torch::Tensor inputs = pos_feature;
-    torch::Tensor inputs_scalar = hit_type_feature.unsqueeze(1);
-    torch::Tensor scalars = torch::cat({node_e, node_p}, 1);
 
-    std::cout << "inputs " << inputs.sizes() << std::endl;
-    std::cout << inputs.slice(0, 0, std::min<int64_t>(5, inputs.size(0))) << std::endl;
-    std::cout << inputs.slice(0, std::max<int64_t>(0, inputs.size(0) - 5), inputs.size(0)) << std::endl;
-
-    std::cout << "inputs_scalar " << inputs_scalar.sizes() << std::endl;
-    std::cout << inputs_scalar.slice(0, 0, std::min<int64_t>(5, inputs_scalar.size(0))) << std::endl;
-    std::cout << inputs_scalar.slice(0, std::max<int64_t>(0, inputs_scalar.size(0) - 5), inputs_scalar.size(0)) << std::endl;
-
-    std::cout << "scalars " << scalars.sizes() << std::endl;
-    std::cout << scalars.slice(0, 0, std::min<int64_t>(5, scalars.size(0))) << std::endl;
-    std::cout << scalars.slice(0, std::max<int64_t>(0, scalars.size(0) - 5), scalars.size(0)) << std::endl;
-
-    std::cout << "inputs min: " << inputs.min().item<float>()
-          << " max: " << inputs.max().item<float>() << std::endl;
-    std::cout << "inputs_scalar min: " << inputs_scalar.min().item<float>()
-            << " max: " << inputs_scalar.max().item<float>() << std::endl;
-    std::cout << "scalars min: " << scalars.min().item<float>()
-            << " max: " << scalars.max().item<float>() << std::endl;
-
-    std::cout << "\n=== first 10 rows explicit ===\n";
-    for (int64_t i = 0; i < std::min<int64_t>(10, inputs.size(0)); ++i) {
-        std::cout << "row " << i
-              << " pos=("
-              << inputs[i][0].item<float>() << ", "
-              << inputs[i][1].item<float>() << ", "
-              << inputs[i][2].item<float>() << ") "
-              << "hit_type=" << inputs_scalar[i][0].item<float>() << " "
-              << "scalars=("
-              << scalars[i][0].item<float>() << ", "
-              << scalars[i][1].item<float>() << ")"
-              << std::endl;
-    }
-
-    std::cout << "\n=== last 10 rows explicit ===\n";
-    for (int64_t i = std::max<int64_t>(0, inputs.size(0) - 10); i < inputs.size(0); ++i) {
-        std::cout << "row " << i
-              << " pos=("
-              << inputs[i][0].item<float>() << ", "
-              << inputs[i][1].item<float>() << ", "
-              << inputs[i][2].item<float>() << ") "
-              << "hit_type=" << inputs_scalar[i][0].item<float>() << " "
-              << "scalars=("
-              << scalars[i][0].item<float>() << ", "
-              << scalars[i][1].item<float>() << ")"
-              << std::endl;
-    }
-
-
-    std::cout << "\n=== hit type counts ===\n";
-    for (int t = 0; t <= 4; ++t) {
-        auto count = (hit_type_feature == t).sum().item<int64_t>();
-        std::cout << "hit_type " << t << ": " << count << std::endl;
-    }
-
-    std::cout << "nonzero node_e: " << (node_e > 0).sum().item<int64_t>() << std::endl;
-    std::cout << "nonzero node_p: " << (node_p > 0).sum().item<int64_t>() << std::endl;
-
-    std::cout << "\n=== rows around largest disagreement candidate ===\n";
-    for (int64_t i : {0, 1, 2, 3, 4, 139, 1208, 2465, 2468}) {
-        if (i >= 0 && i < inputs.size(0)) {
-            std::cout << "row " << i
-                  << " pos=("
-                  << inputs[i][0].item<float>() << ", "
-                  << inputs[i][1].item<float>() << ", "
-                  << inputs[i][2].item<float>() << ") "
-                  << "hit_type=" << inputs_scalar[i][0].item<float>() << " "
-                  << "scalars=("
-                  << scalars[i][0].item<float>() << ", "
-                  << scalars[i][1].item<float>() << ")"
-                  << std::endl;
-    }
-    }
-
-    std::cout << "scalar col0 min/max: "
-          << scalars.slice(1, 0, 1).min().item<float>() << " "
-          << scalars.slice(1, 0, 1).max().item<float>() << std::endl;
-
-    std::cout << "scalar col1 min/max: "
-          << scalars.slice(1, 1, 2).min().item<float>() << " "
-          << scalars.slice(1, 1, 2).max().item<float>() << std::endl;
-
-   */
-
-    //end debug
-
-
-
-
-    
-
-
-    
-   
- 
-
-    //std::cout << "pos_feature" << pos_feature.sizes()<< std::endl;
-    //std::cout << "type_feature" << hit_type_feature.sizes()<< std::endl;
-    //std::cout << "p_feature" << p_feature.sizes()<< std::endl;
-    //std::cout << "e_feature" << e_feature.sizes()<< std::endl;
-    //std::cout << "onehot" << hit_type_one_hot.sizes() << std::endl;
-
-    //final onnx input
-    //torch::Tensor h = torch::cat({pos_feature, hit_type, node_e, node_p}, 1).to(torch::kFloat32);
     torch::Tensor h_scalar = torch::cat({pos_feature, hit_type_one_hot, node_e, node_p}, 1).to(torch::kFloat32);
 
-    /*
-    //convert for ONNXHelper
-    size_t numel = static_cast<size_t>(h.numel());
-    std::vector<float> flat(numel);
-    std::memcpy(flat.data(), h.data_ptr<float>(), numel * sizeof(float));
-    ONNXHelper::Tensor<float> input_tensor;
-    input_tensor.emplace_back(std::move(flat));
-
-
-    ONNXHelper::Tensor<long> input_shapes;
-    input_shapes.emplace_back();
-    input_shapes.back().push_back(h.size(0));
-    input_shapes.back().push_back(h.size(1));
-
-
-  
-    return {input_tensor, input_shapes, h.size(0)};
-    */
 
 
     // input 0: pos_hits_xyz  [N, 3]
@@ -474,11 +340,7 @@ PreprocessedData DataPreprocessing::extract() const {
     
         std::vector<float> global_features;
         global_features.reserve(16);
-        //these are used as inputs. Find order
-        //also fakes? do I need to also implement that part?
-
-        //variab;es that are fed to gatr, investigate what to do
-
+     
         //pos from calo and track
         auto [pos_x, pos_y, pos_z] = shower_i.get_pos();
 
@@ -567,21 +429,6 @@ PreprocessedData DataPreprocessing::extract() const {
             }
         }
 
-        //ONNXHelper::Tensor<float> g_tensor;
-        //g_tensor.reserve(1);
-        //g_tensor.push_back(global_features);
-      
-        
-
-        //pos is a track thing?
-
-        //check if the calculation of these quantities correct? just mean? i.e. scatter sum? 
-        //some other transformations?
-
-        //right order?
-        //out.emplace_back(std::move(node_features), std::move(g_tensor));
-
-     
 
         PropertyInputs packed;
         std::vector<float> hits_points = flatten_points(pos_x, pos_y, pos_z);
@@ -654,7 +501,3 @@ PreprocessedData DataPreprocessing::extract() const {
     return out;
   }
 
-
-  // mache eine funktion, die vorbereitet fuer model Format
-//sind die track states correct?
-//hit type correct?, shouldn't it be N,1?
