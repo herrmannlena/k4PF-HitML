@@ -1,8 +1,69 @@
-# k4PFHITML
+# k4PFHitML
 
+`k4PFHitML` is the key4hep/Gaudi inference implementation of the hit-based
+particle-flow algorithm described in
+[arXiv:2603.04084](https://arxiv.org/html/2603.04084v1). The standalone Python
+reference implementation used for training (and for inference validation
+against this package) lives at
+[github.com/doloresgarcia/HitPF](https://github.com/doloresgarcia/HitPF).
 
-describe + put paper link
+The package handles data preparation from EDM4hep input collections, runs the
+trained models (converted to ONNX) via `k4FWCore::MultiTransformer`, and
+writes out particle-flow objects as standard EDM4hep collections.
 
+This package targets the **CLD** detector concept and geometry: input
+collection names (`ECALBarrel`, `ECALEndcap`, `HCALBarrel`, `HCALEndcap`,
+`HCALOther`, `MUON`, `SiTracks_Refitted`, see the `KeyValues` in
+`PFHitML.cpp`), the truth-matching barrel/endcap geometry constants
+(`truth_barrel_radius`, `truth_n_barrel_sides`, `truth_endcap_z`), and the
+models themselves (see training samples below) all assume CLD. Running on a
+different detector concept would need at least the input collection names
+and truth-matching geometry constants adjusted, and likely retrained models.
+
+## Pipeline overview
+
+Reconstruction proceeds in two model stages per event:
+
+1. **Condensation/clustering model** -- embeds every calorimeter hit and
+   track into a learned space and predicts, per hit/track, a condensation
+   point/beta value. Density Peak Clustering (DPC) on that embedding groups
+   hits and tracks belonging to the same particle into a `Shower`
+   (`Clustering.h/.cpp`, `ShowerBuilder.h/.cpp`). The DPC algorithm itself is
+   a from-scratch C++/libtorch reimplementation of
+   [pgoltstein/densitypeakclustering](https://github.com/pgoltstein/densitypeakclustering)
+   (ρ local density, δ distance-to-higher-density, core/halo cluster
+   assignment), not a binding to that repository.
+2. **Regression/PID model** -- per shower (charged and neutral run through
+   separate models), regresses energy and classifies particle type
+   (electron / charged hadron / neutral hadron / photon / muon)
+   (`PFParticleBuilder.h/.cpp`).
+
+Training data/samples:
+- Both models are trained on CLD full simulation.
+- The condensation model is trained on a Z→uds sample.
+- The regression model is trained on a jet-like particle gun sample.
+
+**Truth matching** is done via IoU (intersection-over-union) between a
+reconstructed shower's constituent hits/tracks and each MCParticle's,
+resolved with Hungarian matching (`TruthMatcher.h`). This produces the
+`HitPFMCTruthLink` output collection, and is what any downstream fake-rate /
+efficiency definition should be built on (a reconstructed particle with no
+truth match is a fake; a truth particle with no reconstructed match is
+missed).
+
+## Outputs
+
+- `HitPF` (`ReconstructedParticleCollection`): the reconstructed particle-flow
+  objects -- momentum, energy, mass, charge, PDG, reference point.
+- `HitPFIDs` (`ParticleIDCollection`): PID hypothesis per particle (type,
+  likelihood, PDG, full per-class score vector). Linked to `HitPF`
+  positionally, not via a relation -- see "HitPF output collection
+  conventions" below for why.
+- `HitPFMCTruthLink` (`RecoMCParticleLinkCollection`): reco-to-truth links
+  from the IoU matching above, weight = IoU.
+- `HitPFUnassociatedTracks` (`TrackCollection`, opt-in): tracks that never
+  ended up in any shower (DPC noise, or removed by the E/p consistency cut),
+  so never made it onto any `HitPF` particle -- see below.
 
 ## Dependencies
 
@@ -16,7 +77,7 @@ describe + put paper link
 
 ## Installation
 
-Run, from the `k4-project-template` directory:
+Run, from the `k4PFHitML` directory:
 
 ``` bash
 source /cvmfs/sw.hsf.org/key4hep/setup.sh
@@ -35,16 +96,156 @@ source /cvmfs/sw-nightlies.hsf.org/key4hep/setup.sh
 
 
 
-## Execute Examples
+## Execute
+
 
 
 ``` bash
-execute with k4run k4PF-HitML/options/PerformMLPF.py
+k4run k4PF-HitML/options/PerformMLPF.py --inputFiles <input.edm4hep.root> --outputFile output_HitPF.root
 ```
 
+`PerformMLPF.py` also accepts all the configurable parameters listed below
+(`--dpc_d_c`, `--bFieldTesla`, `--write_unassociated_tracks`, etc. --
+run with `--help` for the full list).
 
+The output is a ROOT file containing the input collections (`keep *`) plus
+the `HitPF`/`HitPFIDs`/`HitPFMCTruthLink` (and, if enabled,
+`HitPFUnassociatedTracks`) collections described above.
 
+## Source files
+
+- `PFHitML.cpp` -- the main Gaudi `MultiTransformer` algorithm; orchestrates
+  the full per-event pipeline (data prep -> clustering ONNX -> DPC -> shower
+  building -> regression ONNX -> particle assembly) and declares all
+  configurable `Gaudi::Property`s.
+- `DataPreprocessing.h/.cpp` -- builds the clustering model's input graph
+  (calorimeter hits and tracks as nodes), and prepares per-shower inputs for
+  the regression model.
+- `Clustering.h/.cpp` -- Density Peak Clustering (DPC) on the clustering
+  model's embedding output, plus the post-clustering E/p consistency cut
+  (`remove_bad_tracks_from_cluster`) that can evict a track from its cluster.
+- `ShowerBuilder.h/.cpp` -- turns DPC cluster labels into `Shower` objects,
+  assigning each hit/track node back to its shower.
+- `Shower.h/.cpp` -- per-shower data container (hits, tracks, betas) and
+  shower-level derived quantities (mean track momentum, chi2, energy/momentum
+  sums).
+- `PFParticleBuilder.h/.cpp` -- turns a `Shower` plus regression/PID output
+  into a final `HitPF`/`HitPFIDs` entry (`fillRecoParticle`), including all
+  the charged/neutral-specific conventions documented below.
+- `TruthMatcher.h` -- IoU-based Hungarian matching between reconstructed
+  showers and MCParticles; produces `HitPFMCTruthLink`.
+- `EvaluationSummary.h/.cpp` -- collects per-event reco/truth summary rows
+  (used for validation/debug logging, not part of the physics output).
+- `ONNXHelper.h/.cpp` -- thin wrapper around ONNX Runtime for loading a model
+  and running named inference.
+- `Helpers.h/.cpp` -- shared small utility functions used across the above.
 
 ## HitPF configurable parameters
 
-describe
+All exposed as `Gaudi::Property`s on `PFHitML`, settable from
+`options/PerformMLPF.py`:
+
+- Density Peak Clustering parameters (`dpc_d_c`, `dpc_rho_min`,
+  `dpc_delta_min`, `dpc_core_radius`).
+- Truth matching parameters (`truth_iou_threshold`, `truth_barrel_radius`,
+  `truth_n_barrel_sides`, `truth_endcap_z`).
+- Magnetic field strength (`bFieldTesla`), used for track pT reconstruction
+  from curvature.
+- `reassign_low_p_muons` / `muon_to_charged_hadron_p_threshold`: reassigns a
+  charged candidate predicted as muon below a momentum threshold to charged
+  hadron instead (on by default) -- a punch-through/misidentified hadron is
+  more likely than a genuine muon at that momentum.
+- `writeUnassociatedTracks`: write tracks never assigned to any shower into
+  the `HitPFUnassociatedTracks` output collection (off by default) -- e.g.
+  for invariant-mass calculations that want to recover tracks `HitPF` itself
+  drops (charged particles that curl up before reaching the calorimeter).
+
+## HitPF output collection conventions
+
+`PFHitML` writes `HitPF` (`ReconstructedParticleCollection`) + `HitPFIDs`
+(`ParticleIDCollection`). This edm4hep version's `ReconstructedParticle` has no
+`particleIDs`/`particleIDUsed` relation (only `clusters`/`tracks`/`particles`),
+so the two collections are necessarily linked **positionally** -- `HitPF[i]`'s
+PID hypothesis is `HitPFIDs[i]`, created together in the same call to
+`fillRecoParticle` (`PFParticleBuilder.cpp`), with no relation to follow
+instead. A few of `HitPF`'s field conventions are also deliberate choices
+carried over from the Python reference implementation (`HitPF`/`HitPF_plotting`)
+and are **not** the same as what you'd get from Pandora on the same events --
+documented here so a side-by-side comparison isn't mistaken for a bug in the
+port.
+
+- **Reference point** (`referencePoint`): for charged particles this is the
+  energy-weighted shower barycenter *minus* the driving track's
+  calorimeter-entry position (`PFParticleBuilder.cpp::buildChargedRecoInfo`),
+  matching Python's `PickPAtDCA.predict()` (`tools_for_regression.py`:
+  `barycenters - p_xyz`). `HitPF_plotting`'s own dataframe
+  (`shower_dataframe.py::_compute_pandora_momentum`) keeps this as a column
+  entirely separate from Pandora's actual reference point (`pandora_ref_pt`,
+  copied in from Pandora's own reconstruction purely for comparison) -- the two
+  were never meant to be equal, even in the Python reference. Don't expect
+  `HitPF`'s `referencePoint` to numerically match Pandora's. For neutral
+  particles, `referencePoint` is instead an absolute shower-barycenter position
+  (`computeNeutralReferencePoint`), which is a different kind of quantity again
+  (an absolute position vs. an offset) -- this asymmetry between the charged
+  and neutral cases is inherited from Python, not introduced in the C++ port.
+
+- **Energy** (`energy`): for neutral particles this is true total energy
+  (the regression model's calibrated output). For charged particles it is
+  the driving track's momentum magnitude `|p|`, not total energy -- again
+  matching Python's own dataframe convention. Recover true energy for a
+  charged particle via `E = sqrt(|p|^2 + mass^2)`; don't sum `.getEnergy()`
+  directly across mixed charged/neutral particles expecting a total visible
+  energy.
+
+- **Mass / PDG**: fixed per predicted class, not species-specific --
+  electron 0.511 MeV / PDG ±11, charged hadron **assumed pion** 139.57 MeV /
+  PDG ±211, neutral hadron **assumed neutron** 939.57 MeV / PDG 2112, photon
+  0 / PDG 22, muon 105.658 MeV / PDG ±13
+  (`PFParticleBuilder.cpp::massFromPredictedClass`,
+  `pdgFromChargedClass`/`pdgFromNeutralClass`). "Charged hadron"/"neutral
+  hadron" are broad PID categories, not individual species identification
+  (no dE/dx or similar is available at this stage) -- this matches Pandora's
+  own convention of assigning the pion mass/PDG to its generic charged-hadron
+  category, but if you compare against a Pandora config that assumes K⁰_L
+  instead of neutron for neutral hadrons, expect a small systematic
+  difference in neutral-hadron energy/momentum conversion. PDG is set on
+  both `HitPF` (`ReconstructedParticle.PDG`, a plain member in this edm4hep
+  version) and `HitPFIDs` (`ParticleID.PDG`) -- same value, two collections,
+  since there's no relation between them to avoid the duplication (see above).
+
+- **Charge**: derived from the driving track's curvature sign
+  (`chargeSignFromTrack`, `omega > 0` -> +1), 0 for neutral particles.
+
+- **Tracks**: only the single driving track (lowest chi2/ndf,
+  `pickBestTrack`) is attached to a charged `HitPF` particle's `tracks`
+  relation, even if DPC clustered more than one track into the same shower --
+  matching Python's `pick_lowest_chi_squared`, which never modeled more than
+  one track per shower. Tracks that never ended up in any shower at all (DPC
+  noise, or removed by the E/p consistency cut in
+  `Clustering::remove_bad_tracks_from_cluster`) are not attached to any
+  particle; enable `writeUnassociatedTracks` to recover them via the
+  `HitPFUnassociatedTracks` subset collection (e.g. for invariant-mass
+  calculations that want to include tracks `HitPF` itself drops).
+
+- **`HitPFIDs.parameters`**: the full per-class softmax vector (not just the
+  winning class), in `chargedClassMap`/`neutralClassMap` order
+  (`PFHitML.cpp`) -- 3 entries `{e, CH, mu}` for charged particles, 2 entries
+  `{NH, gamma}` for neutral. Lets a downstream consumer define their own PID
+  working point instead of only seeing the argmax decision already baked
+  into `physicsClass`/`mass`/`PDG`.
+
+## References
+
+1. [arXiv:2603.04084](https://arxiv.org/html/2603.04084v1) -- hit-based
+   particle-flow algorithm this package implements.
+2. [HitPF](https://github.com/doloresgarcia/HitPF) -- Python training/inference
+   reference implementation.
+3. [pgoltstein/densitypeakclustering](https://github.com/pgoltstein/densitypeakclustering)
+   -- reference for the Density Peak Clustering algorithm reimplemented in
+   `Clustering.h/.cpp`.
+
+---
+
+*Parts of this codebase and README were drafted with AI assistance, then
+reviewed and adapted if necessary.*
+
