@@ -45,19 +45,15 @@ function(set_test_env _testname)
     )
 endfunction()
 
-add_test(NAME CreateExampleEventData
-               WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-               COMMAND k4run k4ProjectTemplate/options/createExampleEventData.py)
-set_test_env(CreateExampleEventData)
-
-add_test(NAME ReadExampleEventData
-               WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-               COMMAND k4run k4ProjectTemplate/options/readExampleEventData.py)
-set_test_env(ReadExampleEventData)
-set_property(TEST ReadExampleEventData APPEND PROPERTY DEPENDS CreateExampleEventData)
-
-add_test(NAME HelloWorldAlg
-               WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-               COMMAND k4run k4ProjectTemplate/options/createHelloWorld.py)
-set_test_env(HelloWorldAlg)
+SET(test_name "test_PerformMLPF")
+ExternalData_Add_Test(${test_name}
+    NAME ${test_name}
+    COMMAND sh +x k4PF-HitML/test/test_PerformMLPF.sh
+            DATA{${CMAKE_SOURCE_DIR}/k4PF-HitML/test/inputFiles/small_test_sample.edm4hep.root}
+            DATA{${CMAKE_SOURCE_DIR}/k4PF-HitML/test/models/clustering_test.onnx}
+            DATA{${CMAKE_SOURCE_DIR}/k4PF-HitML/test/models/regression_neutral_test.onnx}
+            DATA{${CMAKE_SOURCE_DIR}/k4PF-HitML/test/models/regression_charged_test.onnx})
+set_test_env(${test_name})
+set_tests_properties(${test_name} PROPERTIES WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+ExternalData_Add_Target(${test_name})
 

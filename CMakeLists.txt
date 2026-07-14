@@ -51,6 +51,11 @@ include(GNUInstallDirs)
 
 include(CTest)
 
+#include(ExternalData)
+#list(APPEND ExternalData_URL_TEMPLATES
+#  "https://key4hep.web.cern.ch:443/testFiles/k4PFHitML/%(hash)"
+#)
+
 add_subdirectory(k4PF-HitML)
 
 include(cmake/CreateProjectConfig.cmake)
