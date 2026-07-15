@@ -162,54 +162,39 @@ All exposed as `Gaudi::Property`s on `PFHitML`, settable from
 
 ## HitPF output collection conventions
 
-`PFHitML` writes `HitPF` (`ReconstructedParticleCollection`) + `HitPFIDs`
-(`ParticleIDCollection`). This edm4hep version's `ReconstructedParticle` has no
-`particleIDs`/`particleIDUsed` relation (only `clusters`/`tracks`/`particles`),
-so the two collections are necessarily linked **positionally** -- `HitPF[i]`'s
-PID hypothesis is `HitPFIDs[i]`, created together in the same call to
-`fillRecoParticle` (`PFParticleBuilder.cpp`), with no relation to follow
-instead. A few of `HitPF`'s field conventions are also deliberate choices
-carried over from the Python reference implementation.
 
 - **Reference point** (`referencePoint`): for charged particles this is the
   energy-weighted shower barycenter *minus* the driving track's
   calorimeter-entry position (`PFParticleBuilder.cpp::buildChargedRecoInfo`),
   matching Python's `PickPAtDCA.predict()` (`tools_for_regression.py`:
-  `barycenters - p_xyz`). For neutral
+  `barycenters - p_xyz`). `HitPF_plotting`'s own dataframe
+  (`shower_dataframe.py::_compute_pandora_momentum`) keeps this as a column
+  entirely separate from Pandora's actual reference point (`pandora_ref_pt`,
+  copied in from Pandora's own reconstruction purely for comparison) -- the two
+  were never meant to be equal, even in the Python reference. Don't expect
+  `HitPF`'s `referencePoint` to numerically match Pandora's. For neutral
   particles, `referencePoint` is instead an absolute shower-barycenter position
-  (`computeNeutralReferencePoint`)
+  (`computeNeutralReferencePoint`), which is a different kind of quantity again
+  (an absolute position vs. an offset) -- this asymmetry between the charged
+  and neutral cases is inherited from Python, not introduced in the C++ port.
 
-- **Energy** (`energy`): for neutral particles this is true total energy
-  (the regression model's calibrated output). For charged particles it is
-  the driving track's momentum magnitude `|p|`, not total energy -- again
-  matching Python's own dataframe convention. Recover true energy for a
-  charged particle via `E = sqrt(|p|^2 + mass^2)`; don't sum `.getEnergy()`
-  directly across mixed charged/neutral particles expecting a total visible
-  energy.
+- **Energy** (`energy`): for neutral particles this is a regression output.
+  For charged particles it is the driving track's momentum magnitude `|p|`.
 
 - **Mass / PDG**: fixed per predicted class, not species-specific --
   electron 0.511 MeV / PDG ±11, charged hadron **assumed pion** 139.57 MeV /
   PDG ±211, neutral hadron **assumed neutron** 939.57 MeV / PDG 2112, photon
   0 / PDG 22, muon 105.658 MeV / PDG ±13
   (`PFParticleBuilder.cpp::massFromPredictedClass`,
-  `pdgFromChargedClass`/`pdgFromNeutralClass`). "Charged hadron"/"neutral
-  hadron" are broad PID categories, not individual species identification
-  (no dE/dx or similar is available at this stage). PDG is set on
-  both `HitPF` (`ReconstructedParticle.PDG`, a plain member in this edm4hep
-  version) and `HitPFIDs` (`ParticleID.PDG`) -- same value, two collections,
-  since there's no relation between them to avoid the duplication (see above).
+  `pdgFromChargedClass`/`pdgFromNeutralClass`). Note that the PID classifier only differentiates e, gamma, CH, NH, mu.
 
 - **Charge**: derived from the driving track's curvature sign
   (`chargeSignFromTrack`, `omega > 0` -> +1), 0 for neutral particles.
 
 - **Tracks**: only the single driving track (lowest chi2/ndf,
   `pickBestTrack`) is attached to a charged `HitPF` particle's `tracks`
-  relation, even if DPC clustered more than one track into the same shower --
-  matching Python's `pick_lowest_chi_squared`, which never modeled more than
-  one track per shower. Tracks that never ended up in any shower at all (DPC
-  noise, or removed by the E/p consistency cut in
-  `Clustering::remove_bad_tracks_from_cluster`) are not attached to any
-  particle; enable `writeUnassociatedTracks` to recover them via the
+  relation, even if DPC clustered more than one track into the same shower. 
+  Recover unassociated tracks via the
   `HitPFUnassociatedTracks` subset collection (e.g. for invariant-mass
   calculations that want to include tracks `HitPF` itself drops).
 
