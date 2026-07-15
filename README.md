@@ -101,7 +101,7 @@ source /cvmfs/sw-nightlies.hsf.org/key4hep/setup.sh
 
 
 ``` bash
-k4run k4PF-HitML/options/PerformMLPF.py --inputFiles <input.edm4hep.root> --outputFile output_HitPF.root
+k4run k4PF-HitML/options/PerformMLPF.py --inputFiles <input.edm4hep.root> --outputFile output_HitPF.edm4hep.root
 ```
 
 `PerformMLPF.py` also accepts all the configurable parameters listed below

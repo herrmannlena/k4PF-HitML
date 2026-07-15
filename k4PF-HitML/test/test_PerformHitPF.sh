@@ -9,7 +9,7 @@ MODEL_REGRESSION_NEUTRAL=$2
 MODEL_REGRESSION_CHARGED=$3
 
 SIM_FILE=k4PF-HitML/test/out_sim_edm4hep_test.root
-OUTPUT_FILE=k4PF-HitML/test/output_HitPF_test.root
+OUTPUT_FILE=k4PF-HitML/test/output_HitPF_test.edm4hep.root
 rm -f ${SIM_FILE} ${OUTPUT_FILE}
 
 XML_FILE=$(ls ${K4GEO}/FCCee/CLD/compact/*/*.xml | head -n1)

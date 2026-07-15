@@ -12,7 +12,7 @@ from podio.root_io import Reader
 
 def main():
     if len(sys.argv) != 2:
-        print("usage: check_output.py <output_HitPF.root>", file=sys.stderr)
+        print("usage: check_output.py <output_HitPF.edm4hep.root>", file=sys.stderr)
         return 2
 
     reader = Reader(sys.argv[1])
