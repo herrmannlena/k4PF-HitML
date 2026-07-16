@@ -299,13 +299,13 @@ struct PFHitML final:
     const TrackTruthLinkCollection& trackTruthLinks
   ) const override {
 
-    info() << "EcalBarrelHits: " << EcalBarrel_hits.size() << endmsg;
-    info() << "HcalBarrelHits: " << HcalBarrel_hits.size() << endmsg;
-    info() << "EcalEndcapHits: " << EcalEndcap_hits.size() << endmsg;
-    info() << "HcalEndcapHits: " << HcalEndcap_hits.size() << endmsg;
-    info() << "HcalOtherHits: " << HcalOther_hits.size() << endmsg;
-    info() << "MuonHits: " << Muon_hits.size() << endmsg;
-    info() << "tracks: " << tracks.size() << endmsg;
+    debug() << "EcalBarrelHits: " << EcalBarrel_hits.size() << endmsg;
+    debug() << "HcalBarrelHits: " << HcalBarrel_hits.size() << endmsg;
+    debug() << "EcalEndcapHits: " << EcalEndcap_hits.size() << endmsg;
+    debug() << "HcalEndcapHits: " << HcalEndcap_hits.size() << endmsg;
+    debug() << "HcalOtherHits: " << HcalOther_hits.size() << endmsg;
+    debug() << "MuonHits: " << Muon_hits.size() << endmsg;
+    debug() << "tracks: " << tracks.size() << endmsg;
 
     DataPreprocessing extractor(
       EcalBarrel_hits, 
@@ -373,8 +373,8 @@ struct PFHitML final:
 
     auto split = splitShowersByTrackContent(showers);
 
-    info() << "Number of charged showers: " << split.charged.size() << endmsg;
-    info() << "Number of neutral showers: " << split.neutral.size() << endmsg;
+    debug() << "Number of charged showers: " << split.charged.size() << endmsg;
+    debug() << "Number of neutral showers: " << split.neutral.size() << endmsg;
 
     //truth linking
     TruthMatchConfig truthCfg;

@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Minimal CI sanity check for PerformMLPF.py's output.
 
-Asserts the HitPF collection is non-empty somewhere across the processed
-events -- catches a pipeline that runs cleanly (exit 0) but silently
-produces no particles, which a pure "did it crash" smoke test would miss.
+Asserts the HitPF collection is non-empty 
 """
 import sys
 

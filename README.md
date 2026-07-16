@@ -16,9 +16,7 @@ collection names (`ECALBarrel`, `ECALEndcap`, `HCALBarrel`, `HCALEndcap`,
 `HCALOther`, `MUON`, `SiTracks_Refitted`, see the `KeyValues` in
 `PFHitML.cpp`), the truth-matching barrel/endcap geometry constants
 (`truth_barrel_radius`, `truth_n_barrel_sides`, `truth_endcap_z`), and the
-models themselves (see training samples below) all assume CLD. Running on a
-different detector concept would need at least the input collection names
-and truth-matching geometry constants adjusted, and likely retrained models.
+models themselves. 
 
 ## Pipeline overview
 
@@ -29,10 +27,10 @@ Reconstruction proceeds in two model stages per event:
    point/beta value. Density Peak Clustering (DPC) on that embedding groups
    hits and tracks belonging to the same particle into a `Shower`
    (`Clustering.h/.cpp`, `ShowerBuilder.h/.cpp`). The DPC algorithm itself is
-   a from-scratch C++/libtorch reimplementation of
+   a  reimplementation of
    [pgoltstein/densitypeakclustering](https://github.com/pgoltstein/densitypeakclustering)
    (ρ local density, δ distance-to-higher-density, core/halo cluster
-   assignment), not a binding to that repository.
+   assignment).
 2. **Regression/PID model** -- per shower (charged and neutral run through
    separate models), regresses energy and classifies particle type
    (electron / charged hadron / neutral hadron / photon / muon)
@@ -56,9 +54,7 @@ missed).
 - `HitPF` (`ReconstructedParticleCollection`): the reconstructed particle-flow
   objects -- momentum, energy, mass, charge, PDG, reference point.
 - `HitPFIDs` (`ParticleIDCollection`): PID hypothesis per particle (type,
-  likelihood, PDG, full per-class score vector). Linked to `HitPF`
-  positionally, not via a relation -- see "HitPF output collection
-  conventions" below for why.
+  likelihood, PDG, full per-class score vector).
 - `HitPFMCTruthLink` (`RecoMCParticleLinkCollection`): reco-to-truth links
   from the IoU matching above, weight = IoU.
 - `HitPFUnassociatedTracks` (`TrackCollection`, opt-in): tracks that never
@@ -167,16 +163,10 @@ All exposed as `Gaudi::Property`s on `PFHitML`, settable from
   energy-weighted shower barycenter *minus* the driving track's
   calorimeter-entry position (`PFParticleBuilder.cpp::buildChargedRecoInfo`),
   matching Python's `PickPAtDCA.predict()` (`tools_for_regression.py`:
-  `barycenters - p_xyz`). `HitPF_plotting`'s own dataframe
-  (`shower_dataframe.py::_compute_pandora_momentum`) keeps this as a column
-  entirely separate from Pandora's actual reference point (`pandora_ref_pt`,
-  copied in from Pandora's own reconstruction purely for comparison) -- the two
-  were never meant to be equal, even in the Python reference. Don't expect
-  `HitPF`'s `referencePoint` to numerically match Pandora's. For neutral
+  `barycenters - p_xyz`). For neutral
   particles, `referencePoint` is instead an absolute shower-barycenter position
   (`computeNeutralReferencePoint`), which is a different kind of quantity again
-  (an absolute position vs. an offset) -- this asymmetry between the charged
-  and neutral cases is inherited from Python, not introduced in the C++ port.
+  (an absolute position vs. an offset).
 
 - **Energy** (`energy`): for neutral particles this is a regression output.
   For charged particles it is the driving track's momentum magnitude `|p|`.

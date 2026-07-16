@@ -1,7 +1,7 @@
 # k4PFHitML CTest fixtures
 
 `test_PerformHitPF` (registered in `k4PF-HitML/CMakeLists.txt`) runs the full
-`PerformMLPF.py` pipeline on a tiny freshly-simulated sample with small test
+`PerformMLPF.py` pipeline on a tiny simulated sample with small test
 versions of the 3 ONNX models, then asserts (`check_output.py`) that the
 output `HitPF` collection is non-empty.
 
