@@ -165,8 +165,7 @@ All exposed as `Gaudi::Property`s on `PFHitML`, settable from
   matching Python's `PickPAtDCA.predict()` (`tools_for_regression.py`:
   `barycenters - p_xyz`). For neutral
   particles, `referencePoint` is instead an absolute shower-barycenter position
-  (`computeNeutralReferencePoint`), which is a different kind of quantity again
-  (an absolute position vs. an offset).
+  (`computeNeutralReferencePoint`)
 
 - **Energy** (`energy`): for neutral particles this is a regression output.
   For charged particles it is the driving track's momentum magnitude `|p|`.
