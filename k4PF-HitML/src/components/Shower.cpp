@@ -1,3 +1,21 @@
+/*
+ * Copyright (c) 2020-2024 Key4hep-Project.
+ *
+ * This file is part of Key4hep.
+ * See https://key4hep.github.io/key4hep-doc/ for further info.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include "Shower.h"
 
 
@@ -28,9 +46,9 @@ std::pair<float, float> Shower::getCaloEnergy(std::vector<edm4hep::CalorimeterHi
 }
 
 void Shower::addCalorimeterHit(const edm4hep::CalorimeterHit& hit, const std::string collection) {
-        
+
     caloHits_.push_back(hit);
-    
+
     if (collection == "ecal"){
         ecalHits_.push_back(hit);
         types_.push_back(2);
@@ -43,7 +61,7 @@ void Shower::addCalorimeterHit(const edm4hep::CalorimeterHit& hit, const std::st
         muonHits_.push_back(hit);
         types_.push_back(4);
     }
-    
+
 }
 
 const float Shower::getTrackMomentum_mean(float bFieldTesla){
@@ -92,12 +110,12 @@ const float Shower::Chi2_mean(){
 
 
 const std::tuple<std::vector<float>, std::vector<float>, std::vector<float>> Shower::get_pos(){
-    
+
     std::vector<float> calo_x;
     std::vector<float> calo_y;
     std::vector<float> calo_z;
 
-       
+
     for (const auto& hit_i : caloHits_) {
         auto pos = hit_i.getPosition();
         calo_x.push_back(pos.x);
@@ -109,7 +127,7 @@ const std::tuple<std::vector<float>, std::vector<float>, std::vector<float>> Sho
     std::vector<float> track_y;
     std::vector<float> track_z;
 
-       
+
     for (const auto& track_i : tracks_) {
         auto trackstate_calo = track_i.getTrackStates()[3];
         auto referencePoint_calo = trackstate_calo.referencePoint;
@@ -119,17 +137,17 @@ const std::tuple<std::vector<float>, std::vector<float>, std::vector<float>> Sho
     }
 
     std::vector<float> all_x;
-    all_x.reserve(calo_x.size() + track_x.size()); 
+    all_x.reserve(calo_x.size() + track_x.size());
     all_x.insert(all_x.end(), calo_x.begin(), calo_x.end());
     all_x.insert(all_x.end(), track_x.begin(), track_x.end());
 
     std::vector<float> all_y;
-    all_y.reserve(calo_y.size() + track_y.size()); 
+    all_y.reserve(calo_y.size() + track_y.size());
     all_y.insert(all_y.end(), calo_y.begin(), calo_y.end());
     all_y.insert(all_y.end(), track_y.begin(), track_y.end());
 
     std::vector<float> all_z;
-    all_z.reserve(calo_z.size() + track_z.size()); 
+    all_z.reserve(calo_z.size() + track_z.size());
     all_z.insert(all_z.end(), calo_z.begin(), calo_z.end());
     all_z.insert(all_z.end(), track_z.begin(), track_z.end());
 
@@ -148,11 +166,11 @@ const std::tuple<std::vector<float>, std::vector<float>, std::vector<float>> Sho
 
 
 const std::tuple<std::vector<float>, std::vector<float>> Shower::get_ep(float bFieldTesla){
-    
+
     std::vector<float> calo_e;
     std::vector<float> calo_p;
 
-       
+
     for (const auto& hit_i : caloHits_) {
         calo_e.push_back(hit_i.getEnergy());
         calo_p.push_back(0);
@@ -161,32 +179,32 @@ const std::tuple<std::vector<float>, std::vector<float>> Shower::get_ep(float bF
     std::vector<float> track_e;
     std::vector<float> track_p;
 
-       
+
     for (const auto& track_i : tracks_) {
-      
+
         auto trackstate = track_i.getTrackStates()[0];
         float omega = trackstate.omega;
         float phi = trackstate.phi;
         float tanLambda = trackstate.tanLambda;
-    
+
         float pt = 2.99792e-4f * std::abs(bFieldTesla/omega);
         float px = std::cos(phi) * pt;
         float py = std::sin(phi) * pt;
         float pz = tanLambda  * pt;
         float p = std::sqrt(px * px + py * py + pz * pz);
-        
+
 
         track_e.push_back(0);
         track_p.push_back(p);
     }
 
     std::vector<float> all_e;
-    all_e.reserve(calo_e.size() + track_e.size()); 
+    all_e.reserve(calo_e.size() + track_e.size());
     all_e.insert(all_e.end(), calo_e.begin(), calo_e.end());
     all_e.insert(all_e.end(), track_e.begin(), track_e.end());
 
     std::vector<float> all_p;
-    all_p.reserve(calo_p.size() + track_p.size()); 
+    all_p.reserve(calo_p.size() + track_p.size());
     all_p.insert(all_p.end(), calo_p.begin(), calo_p.end());
     all_p.insert(all_p.end(), track_p.begin(), track_p.end());
 

@@ -65,7 +65,7 @@ args = parser.parse_known_args()[0]
 
 svc = IOSvc("IOSvc")
 svc.Input = args.inputFiles
-svc.Output = args.outputFile  
+svc.Output = args.outputFile
 
 
 Multitransformer = PFHitML("PFHitML",

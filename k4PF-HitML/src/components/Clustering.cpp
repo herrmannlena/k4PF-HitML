@@ -1,3 +1,21 @@
+/*
+ * Copyright (c) 2020-2024 Key4hep-Project.
+ *
+ * This file is part of Key4hep.
+ * See https://key4hep.github.io/key4hep-doc/ for further info.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include "Clustering.h"
 
 #include <algorithm>
@@ -20,9 +38,9 @@ std::vector<float> Clustering::compute_distance_matrix(const torch::Tensor& X) c
     // NaN diagonal matches Python's dc.distance_matrix (sklearn pairwise_distances
     // with the diagonal overwritten to NaN). The NaN is reset to 0 later in get_clustering(), right
     // before the core-radius membership check, exactly mirroring Python's
-    // `D[np.isnan(D)] = 0` 
+    // `D[np.isnan(D)] = 0`
     std::vector<float> distances(n_points * n_points, std::numeric_limits<float>::quiet_NaN());
-    
+
 
     for (std::size_t i = 0; i < n_points; ++i) {
         for (std::size_t j = i + 1; j < n_points; ++j) {
@@ -178,7 +196,7 @@ torch::Tensor Clustering::get_clustering(const std::vector<float>& output_vector
     const auto centers = cluster_centers(rho, delta);
     const auto ids = assign_cluster_id(rho, nearest, centers);
 
-    
+
     // Mimic Python behavior: D has NaNs during rho calculation, then
     // D[np.isnan(D)] = 0 before core assignment.
 

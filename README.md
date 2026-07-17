@@ -16,7 +16,7 @@ collection names (`ECALBarrel`, `ECALEndcap`, `HCALBarrel`, `HCALEndcap`,
 `HCALOther`, `MUON`, `SiTracks_Refitted`, see the `KeyValues` in
 `PFHitML.cpp`), the truth-matching barrel/endcap geometry constants
 (`truth_barrel_radius`, `truth_n_barrel_sides`, `truth_endcap_z`), and the
-models themselves. 
+models themselves.
 
 ## Pipeline overview
 
@@ -163,36 +163,6 @@ All exposed as `Gaudi::Property`s on `PFHitML`, settable from
   drops (charged particles that curl up before reaching the calorimeter).
 
 
-## ONNX models
-
-- **`--onnx_model_clustering`** -- the condensation/clustering model. Takes
-  the full per-event hit+track feature graph (`DataPreprocessing.cpp`) and
-  outputs, per node, a 4-vector: 3 embedding-space coordinates + 1 beta
-  (condensation confidence) value. DPC clustering (`Clustering.cpp`) then
-  runs entirely on this output -- the clustering model itself does not
-  decide cluster membership, only the embedding it's clustered in.
-- **`--onnx_model_properties_neutral`** -- the neutral shower regression/PID
-  model. Takes a neutral shower's aggregated features
-  (`DataPreprocessing::prepare_prop`) and outputs calibrated energy (first
-  output tensor) and PID logits (neutral hadron vs. photon) used to build
-  the `HitPF` particle's `energy`/`mass`/`PDG`.
-- **`--onnx_model_properties_charged`** -- the charged shower PID model.
-  Takes a charged shower's aggregated features (including the driving
-  track's own properties) and outputs PID logits only (electron / charged
-  hadron / muon) -- momentum for charged particles comes directly from the
-  driving track's curvature, not from this model (see "HitPF output
-  collection conventions" below).
-
-To replace any of these with a retrained model, just point the corresponding
-argument at the new file:
-
-``` bash
-k4run k4PF-HitML/options/PerformMLPF.py --inputFiles <input.edm4hep.root> \
-  --onnx_model_clustering /path/to/new_clustering.onnx \
-  --onnx_model_properties_neutral /path/to/new_neutral.onnx \
-  --onnx_model_properties_charged /path/to/new_charged.onnx
-```
-
 ## HitPF output collection conventions
 
 
@@ -219,7 +189,7 @@ k4run k4PF-HitML/options/PerformMLPF.py --inputFiles <input.edm4hep.root> \
 
 - **Tracks**: only the single driving track (lowest chi2/ndf,
   `pickBestTrack`) is attached to a charged `HitPF` particle's `tracks`
-  relation, even if DPC clustered more than one track into the same shower. 
+  relation, even if DPC clustered more than one track into the same shower.
   Recover unassociated tracks via the
   `HitPFUnassociatedTracks` subset collection (e.g. for invariant-mass
   calculations that want to include tracks `HitPF` itself drops).

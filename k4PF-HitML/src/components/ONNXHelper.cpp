@@ -19,7 +19,7 @@
  #include "ONNXHelper.h"
 
  #include "onnxruntime_cxx_api.h"
- 
+
  #include <algorithm>
  #include <numeric>
  #include <iostream>
@@ -28,7 +28,7 @@
 
 
  //taken from https://github.com/key4hep/k4MLJetTagger/blob/main/k4MLJetTagger/src/components/ONNXRuntime.h
- 
+
  ONNXHelper::ONNXHelper(const std::string& model_path)
      : m_env(new Ort::Env(OrtLoggingLevel::ORT_LOGGING_LEVEL_WARNING, "onnx_runtime")), m_allocator(),
       m_cpu_mem_info(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault)) {
@@ -36,26 +36,26 @@
      throw std::runtime_error("Path to ONNX model cannot be empty!");
    Ort::SessionOptions options;
    options.SetIntraOpNumThreads(1);
-   std::string model{model_path}; 
+   std::string model{model_path};
    m_session = std::make_unique<Ort::Session>(*m_env, model.c_str(), options);
- 
+
    // Get input names and shapes
    m_inputNodeStrings.clear();
    m_inputNodeDims.clear();
- 
+
    for (size_t i = 0; i < m_session->GetInputCount(); ++i) {
      // get input names
      const auto input_name =
-         m_session->GetInputNameAllocated(i, m_allocator).release(); 
+         m_session->GetInputNameAllocated(i, m_allocator).release();
      m_inputNodeStrings.emplace_back(input_name);
- 
+
      // get input shapes
      const auto nodeInfo = m_session->GetInputTypeInfo(i);
      m_inputNodeDims[input_name] = nodeInfo.GetTensorTypeAndShapeInfo().GetShape();
 
 
    }
- 
+
    // Get output names and shapes
    m_outputNodeStrings.clear();
    m_outputNodeDims.clear();
@@ -63,20 +63,20 @@
      // Get output names
      const auto output_name = m_session->GetOutputNameAllocated(i, m_allocator).release();
      m_outputNodeStrings.emplace_back(output_name);
- 
+
      // get output shapes
      const auto nodeInfo = m_session->GetOutputTypeInfo(i);
      m_outputNodeDims[output_name] = nodeInfo.GetTensorTypeAndShapeInfo().GetShape();
- 
+
      // the 0th dim depends on the batch size
      m_outputNodeDims[output_name].at(0) = -1;
 
 
    }
  }
- 
+
  ONNXHelper::~ONNXHelper() {}
- 
+
  template <typename T>
  ONNXHelper::Tensor<T> ONNXHelper::run(Tensor<T>& input, const Tensor<long>& input_shapes,
                                          unsigned long long batch_size) const {
@@ -123,26 +123,26 @@
      if (expected_len != (int64_t)value.size())
        throw std::runtime_error("Input array '" + name + "' has a wrong size of " + std::to_string(value.size()) +
                                 ", expected " + std::to_string(expected_len));
- 
-    
+
+
      auto input_tensor =
          Ort::Value::CreateTensor<float>(m_cpu_mem_info, value.data(), value.size(), input_dims.data(), input_dims.size());
      if (!input_tensor.IsTensor())
        throw std::runtime_error("Failed to create an input tensor for variable '" + name + "'.");
      tensors_in.emplace_back(std::move(input_tensor));
    }
- 
+
    // convert to char*
    std::vector<const char*> input_node_names;
    for (const auto& name_i : m_inputNodeStrings) {
      input_node_names.push_back(name_i.c_str());
    }
- 
+
    std::vector<const char*> output_node_names;
    for (const auto& name_j : m_outputNodeStrings) {
      output_node_names.push_back(name_j.c_str());
    }
- 
+
    // run the inference
    auto output_tensors = m_session->Run(Ort::RunOptions{nullptr}, input_node_names.data(), tensors_in.data(),
                                         tensors_in.size(), output_node_names.data(), output_node_names.size());
@@ -164,7 +164,7 @@
    if (outputs.size() != m_session->GetOutputCount())
      throw std::runtime_error("Number of outputs differ from the expected one: got " + std::to_string(outputs.size()) +
                               ", expected " + std::to_string(m_session->GetOutputCount()));
- 
+
    return outputs;
  }
 
@@ -255,9 +255,9 @@ ONNXHelper::Tensor<float> ONNXHelper::runNamed(std::vector<ONNXInput>& inputs) c
 
 
  static Ort::MemoryInfo CpuMemInfo() {
-  return Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault); 
+  return Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 }
 
 
- 
+
  template ONNXHelper::Tensor<float> ONNXHelper::run(Tensor<float>&, const Tensor<long>&, unsigned long long) const;

@@ -18,17 +18,17 @@
  */
  #ifndef ONNXHelper_ONNXHelper_h
  #define ONNXHelper_ONNXHelper_h
- 
+
  // From: https://github.com/HEP-FCC/FCCAnalyses/tree/b9b84221837da8868158f5592b48a9af69f0f6e3/addons/ONNXRuntime
  // AI generated documentation
- 
+
  #include <map>
  #include <memory>
  #include <string>
  #include <vector>
- 
+
  #include "onnxruntime_cxx_api.h"
- 
+
  namespace Ort {
  class Env;     ///< Wrapper class for the ONNX Runtime environment.
  class Session; ///< Wrapper class for ONNX Runtime session handling.
@@ -61,12 +61,12 @@
     * @param input_names List of input variable names to bind during inference.
     */
    explicit ONNXHelper(const std::string& model_path = "");
- 
+
    /**
     * @brief Destructor to clean up the ONNXHelper environment and session.
     */
    virtual ~ONNXHelper();
- 
+
    /**
     * @brief Type alias for a 2D tensor.
     *
@@ -76,11 +76,11 @@
     */
    template <typename T>
    using Tensor = std::vector<std::vector<T>>;
- 
+
    // Deleted copy constructor and assignment operator
    ONNXHelper(const ONNXHelper&) = delete;            ///< Prevents copying of ONNXHelper instances.
    ONNXHelper& operator=(const ONNXHelper&) = delete; ///< Prevents assignment of ONNXHelper instances.
- 
+
    /**
     * @brief Retrieves the list of input variable names for the model.
     *
@@ -88,13 +88,13 @@
     */
    const std::vector<std::string>& inputNames() const { return m_inputNodeStrings; }
    const std::map<std::string, std::vector<int64_t>>& inputDims() const { return m_inputNodeDims; }
-  
+
    //same for output
    const std::vector<std::string>& outputNames() const { return m_outputNodeStrings; }
    const std::map<std::string, std::vector<int64_t>>& outputDims() const { return m_outputNodeDims; }
 
 
- 
+
    /**
     * @brief Runs inference on the provided input tensor and returns the output tensor.
     *
@@ -111,7 +111,7 @@
   Tensor<float> runNamed(std::vector<ONNXInput>& inputs) const;
 
   static Ort::MemoryInfo CpuMemInfo();
- 
+
  private:
    /**
     * @brief Retrieves the position of a variable in the input names list.
@@ -120,18 +120,18 @@
     * @return The position of the variable in the input names list.
     */
    size_t variablePos(const std::string& var_name) const;
-   
- 
+
+
    std::unique_ptr<Ort::Env> m_env;              ///< Pointer to the ONNX Runtime environment object.
    std::unique_ptr<Ort::Session> m_session;      ///< Pointer to the ONNX Runtime session object.
    Ort::AllocatorWithDefaultOptions m_allocator; ///< Allocator for ONNX Runtime tensors.
    Ort::MemoryInfo m_cpu_mem_info;
- 
+
    std::vector<std::string> m_inputNodeStrings;                  ///< List of input node names.
    std::vector<std::string> m_outputNodeStrings;                 ///< List of output node names.
    std::vector<std::string> m_inputNames;                        ///< List of model input names.
    std::map<std::string, std::vector<int64_t>> m_inputNodeDims;  ///< Dimensions of input nodes.
    std::map<std::string, std::vector<int64_t>> m_outputNodeDims; ///< Dimensions of output nodes.
  };
- 
+
  #endif

@@ -15,9 +15,6 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-
- Description: 
- converts rec files into the required format for MLPF inference. The standalone repository doing this job can be found here: https://github.com/doloresgarcia/MLPF_datageneration
  */
 
 #include "DataPreprocessing.h"
@@ -32,7 +29,7 @@
 #include "Shower.h"
 
 #include <torch/torch.h>
-#include "ONNXHelper.h"  
+#include "ONNXHelper.h"
 
 
 
@@ -46,12 +43,12 @@ DataPreprocessing::DataPreprocessing(
     const edm4hep::TrackCollection& tracks,
     float bFieldTesla)
     : ecalbarrel_(EcalBarrel_hits), hcalbarrel_(HcalBarrel_hits),
-    ecalendcap_(EcalEndcap_hits), hcalendcap_(HcalEndcap_hits), hcalother_(HcalOther_hits), 
+    ecalendcap_(EcalEndcap_hits), hcalendcap_(HcalEndcap_hits), hcalother_(HcalOther_hits),
     muons_(Muon_hits), tracks_(tracks), bFieldTesla_(bFieldTesla){}
 
 
-    
-  
+
+
 
 PreprocessedData DataPreprocessing::extract() const {
     //std::map<std::string, std::vector<float>> features; //features used for clustering model
@@ -69,7 +66,7 @@ PreprocessedData DataPreprocessing::extract() const {
         {"MUON",        &muons_}
     };
 
-    
+
     int globalHitIndex = 0;
     int collectionIndex = 0;
 
@@ -79,23 +76,23 @@ PreprocessedData DataPreprocessing::extract() const {
 
             auto pos = hit.getPosition();
             auto energy = hit.getEnergy();
-           
-            
+
+
             float x = pos.x;
             float y = pos.y;
             float z = pos.z;
-            
+
             int htype;
             if (name.find("ECAL") != std::string::npos) {
                 htype = 2;
-            } 
+            }
             else if (name.find("HCAL") != std::string::npos) {
                 htype = 3;
             } else if (name.find("MUON") != std::string::npos) {
                 htype = 4;
             }
             else{
-                htype = 5; 
+                htype = 5;
             }
 
 
@@ -111,7 +108,7 @@ PreprocessedData DataPreprocessing::extract() const {
 
             globalHitIndex += 1;
             hitIndex += 1;
-            
+
         }
 
         collectionIndex += 1;
@@ -121,8 +118,8 @@ PreprocessedData DataPreprocessing::extract() const {
     //extract track information
     int trackIndex = 0;
     for (const auto& track : tracks_) {
-        
-    
+
+
         auto trackstate = track.getTrackStates()[0];
         float omega = trackstate.omega;
         float phi = trackstate.phi;
@@ -134,10 +131,10 @@ PreprocessedData DataPreprocessing::extract() const {
         float py = std::sin(phi) * pt;
         float pz = tanLambda  * pt;
         float p = std::sqrt(px * px + py * py + pz * pz);
-   
+
         features["p_tracks"].push_back(p);
-        features["e_tracks"].push_back(0);  
-    
+        features["e_tracks"].push_back(0);
+
 
         //also add features for trackstate at calo
         auto trackstate_calo = track.getTrackStates()[3];
@@ -148,7 +145,7 @@ PreprocessedData DataPreprocessing::extract() const {
         float z_c = referencePoint_calo.z;
 
         int htype_c = 1; //vertex track state
-    
+
         features["pos_hits_xyz_tracks"].push_back(x_c);
         features["pos_hits_xyz_tracks"].push_back(y_c);
         features["pos_hits_xyz_tracks"].push_back(z_c);
@@ -158,7 +155,7 @@ PreprocessedData DataPreprocessing::extract() const {
 
         globalHitIndex += 1;
         trackIndex += 1;
-        
+
     }
 
     features["node_energy"] = features["e_hits"];
@@ -169,7 +166,7 @@ PreprocessedData DataPreprocessing::extract() const {
 
     features["hit_type"] = features["hit_type_feature_hit"];
     features["hit_type"].insert(features["hit_type"].end(),features["hit_type_feature_track"].begin(),features["hit_type_feature_track"].end());
-      
+
     return out;
   }
 
@@ -179,37 +176,37 @@ PreprocessedData DataPreprocessing::extract() const {
 
 
     ClusteringInputs packed;
-    
 
-    // prepare position 
-    const auto& pos_hits_flat = features.at("pos_hits_xyz_hits");  
+
+    // prepare position
+    const auto& pos_hits_flat = features.at("pos_hits_xyz_hits");
     std::size_t N = pos_hits_flat.size() / 3;
 
     torch::Tensor pos_hits = torch::tensor(pos_hits_flat, torch::kFloat32).reshape({static_cast<long>(N), 3});
 
-    const auto& pos_tracks_flat = features.at("pos_hits_xyz_tracks");  
+    const auto& pos_tracks_flat = features.at("pos_hits_xyz_tracks");
     std::size_t N_tracks = pos_tracks_flat.size() / 3;
-                           
+
     torch::Tensor pos_tracks = torch::tensor(pos_tracks_flat, torch::kFloat32).reshape({static_cast<long>(N_tracks), 3});
 
     const long n_nodes = static_cast<long>(N + N_tracks);
-  
-    //concatenate pos features
-    torch::Tensor pos_feature = torch::cat({pos_hits, pos_tracks}, 0); 
 
-    //prepare e 
+    //concatenate pos features
+    torch::Tensor pos_feature = torch::cat({pos_hits, pos_tracks}, 0);
+
+    //prepare e
     torch::Tensor hit_e   = torch::from_blob(
-        const_cast<float*>(features.at("e_hits").data()),          
-        {static_cast<long>(features.at("e_hits").size())},         
-        torch::kFloat32                                                        
-    ).clone(); 
-    
+        const_cast<float*>(features.at("e_hits").data()),
+        {static_cast<long>(features.at("e_hits").size())},
+        torch::kFloat32
+    ).clone();
+
     torch::Tensor track_e = torch::from_blob(
         const_cast<float*>(features.at("e_tracks").data()),
         {static_cast<long>(features.at("e_tracks").size())},
         torch::kFloat32
     ).clone();
-    
+
     torch::Tensor node_e = torch::from_blob(
         const_cast<float*>(features.at("node_energy").data()),
         {static_cast<long>(features.at("node_energy").size())},
@@ -224,18 +221,18 @@ PreprocessedData DataPreprocessing::extract() const {
 
     //prepare p
     torch::Tensor hit_p   = torch::from_blob(
-        const_cast<float*>(features.at("p_hits").data()),          
-        {static_cast<long>(features.at("p_hits").size())},         
-        torch::kFloat32                                                        
-    ).clone(); 
-    
+        const_cast<float*>(features.at("p_hits").data()),
+        {static_cast<long>(features.at("p_hits").size())},
+        torch::kFloat32
+    ).clone();
+
     torch::Tensor track_p = torch::from_blob(
         const_cast<float*>(features.at("p_tracks").data()),
         {static_cast<long>(features.at("p_tracks").size())},
         torch::kFloat32
     ).clone();
 
-  
+
 
     torch::Tensor hit_type_feature = torch::from_blob(
     const_cast<float*>(features.at("hit_type").data()),
@@ -304,7 +301,7 @@ PreprocessedData DataPreprocessing::extract() const {
 
   }
 
- 
+
   static std::vector<float> flatten_points(const std::vector<float>& x,
                                   const std::vector<float>& y,
                                   const std::vector<float>& z) {
@@ -317,12 +314,12 @@ PreprocessedData DataPreprocessing::extract() const {
     }
     return out;
 }
-  
+
 
   //prepare the inputs for energy regression and PID, return node and global features
   std::vector<PropertyInputs> DataPreprocessing::prepare_prop(std::vector<Shower> showers) const {
-    
-    //loop over showers   
+
+    //loop over showers
     std::vector<PropertyInputs> out;
     out.reserve(showers.size());
 
@@ -330,10 +327,10 @@ PreprocessedData DataPreprocessing::extract() const {
 
         ONNXHelper::Tensor<float> node_features;
         node_features.reserve(9);
-    
+
         std::vector<float> global_features;
         global_features.reserve(16);
-     
+
         //pos from calo and track
         auto [pos_x, pos_y, pos_z] = shower_i.get_pos();
 
@@ -361,43 +358,43 @@ PreprocessedData DataPreprocessing::extract() const {
         node_features.push_back(p_vector);
         node_features.push_back(betas);
 
-        
+
 
         //include distinction charged neutral..
-       
+
 
         // high level stuff
 
-        float sum_e = shower_i.getCaloEnergy(shower_i.caloHits_).first; 
-        float muon_e = shower_i.getCaloEnergy(shower_i.muonHits_).first; 
+        float sum_e = shower_i.getCaloEnergy(shower_i.caloHits_).first;
+        float muon_e = shower_i.getCaloEnergy(shower_i.muonHits_).first;
         float ecal_e = shower_i.getCaloEnergy(shower_i.ecalHits_).first;
         float hcal_e = shower_i.getCaloEnergy(shower_i.hcalHits_).first;
 
-        float ECAL_e_fraction = ecal_e / sum_e; 
-        float HCAL_e_fraction = hcal_e / sum_e; 
+        float ECAL_e_fraction = ecal_e / sum_e;
+        float HCAL_e_fraction = hcal_e / sum_e;
 
-        int num_hits = shower_i.getCalorimeterHits().size(); 
-        int num_tracks = shower_i.getTracks().size(); 
-        int num_muon_hits = shower_i.muonHits_.size(); 
+        int num_hits = shower_i.getCalorimeterHits().size();
+        int num_tracks = shower_i.getTracks().size();
+        int num_muon_hits = shower_i.muonHits_.size();
 
-        int total_hits = num_hits + num_tracks;   // include tracks or not? 
+        int total_hits = num_hits + num_tracks;   // include tracks or not?
 
-        float track_p = shower_i.getTrackMomentum_mean(bFieldTesla_); 
+        float track_p = shower_i.getTrackMomentum_mean(bFieldTesla_);
 
-        float dispersion_ecal = disperion(shower_i, shower_i.ecalHits_); 
-        float dispersion_hcal = disperion(shower_i, shower_i.hcalHits_); 
+        float dispersion_ecal = disperion(shower_i, shower_i.ecalHits_);
+        float dispersion_hcal = disperion(shower_i, shower_i.hcalHits_);
 
-        float chi2 = std::clamp(shower_i.Chi2_mean(), -5.0f, 5.0f); 
+        float chi2 = std::clamp(shower_i.Chi2_mean(), -5.0f, 5.0f);
 
-        float mean_x = mean_var(pos_x); 
-        float mean_y = mean_var(pos_y); 
-        float mean_z = mean_var(pos_z); 
+        float mean_x = mean_var(pos_x);
+        float mean_y = mean_var(pos_y);
+        float mean_z = mean_var(pos_z);
 
-        float eta = calculate_eta(mean_x, mean_y, mean_z); 
-        float phi = calculate_phi(mean_x, mean_y); 
+        float eta = calculate_eta(mean_x, mean_y, mean_z);
+        float phi = calculate_phi(mean_x, mean_y);
 
         //add the global features
-        
+
 
         global_features.push_back(ECAL_e_fraction); //0
         global_features.push_back(HCAL_e_fraction); //1

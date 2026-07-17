@@ -1,3 +1,21 @@
+/*
+ * Copyright (c) 2020-2024 Key4hep-Project.
+ *
+ * This file is part of Key4hep.
+ * See https://key4hep.github.io/key4hep-doc/ for further info.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 #include "ShowerBuilder.h"
 #include "Shower.h"
 #include "DataPreprocessing.h"
@@ -14,53 +32,53 @@ std::vector<Shower> ShowerBuilder::buildShowers(const torch::Tensor& cluster_lab
     torch::Tensor uniqueTensor; // enumerates showers [0,1,2,3]
     torch::Tensor inverseIndices; // each hit gets shower label i.e. [3,3,3,3,2,3,0,0,0,2,2,2,2,1,1,1,1]
     std::tie(uniqueTensor, inverseIndices) = at::_unique(cluster_label, true, true);
-  
-  
+
+
     //number of particles
     int64_t num_part = uniqueTensor.numel();
-  
+
     auto uniqueView = uniqueTensor.accessor<int64_t, 1>();
-  
+
     std::vector<Shower> showers;
-   
+
     for (int64_t i = 0; i < num_part; ++i) {
-  
+
       int64_t label = uniqueView[i];
       if (label == 0) {
         continue;
       }
-  
-  
+
+
       // Mask hits belonging to this cluster
       torch::Tensor mask    = (cluster_label == label);           // [00011000]
       torch::Tensor indices = torch::nonzero(mask).flatten();     // [3,4]
-  
-  
+
+
       auto idxView = indices.accessor<int64_t, 1>();
       const auto& hit_mapping = preproc_.hit_mapping;
 
-    
+
       //shower object
       showers.emplace_back();
       Shower& shower_i = showers.back();
       shower_i.label_ = label;
-     
+
       for (int64_t j = 0; j < indices.size(0); ++j) {
-  
+
           int64_t hitIdxModel = idxView[j];       // index in NN input order
-  
+
           int64_t htype = hit_mapping[hitIdxModel][0];
           int64_t coll  = hit_mapping[hitIdxModel][1];
           int64_t hidx  = hit_mapping[hitIdxModel][2];
-          
-  
+
+
 
           edm4hep::CalorimeterHit hit_i;
           edm4hep::Track track_i;
           float beta = betas[hitIdxModel];
           shower_i.addBetas(beta);
 
-          
+
           //assign tracks
           if (htype == 1){
             track_i = dp_.tracks().at(hidx);
@@ -91,18 +109,17 @@ std::vector<Shower> ShowerBuilder::buildShowers(const torch::Tensor& cluster_lab
             hit_i = dp_.muons().at(hidx);
             shower_i.addCalorimeterHit(hit_i, "muon");
           }
-          
 
-  
+
+
       }
-          
-         
-  
+
+
+
     }
-      
-  
-  
+
+
+
     return showers;
   }
-  
-  
+

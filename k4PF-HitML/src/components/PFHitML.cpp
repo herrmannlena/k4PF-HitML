@@ -35,13 +35,13 @@
 
 //others
 #include "DataPreprocessing.h"
-#include "Clustering.h"  
-#include "Helpers.h"  
+#include "Clustering.h"
+#include "Helpers.h"
 #include "ShowerBuilder.h"
 #include "Shower.h"
 #include "PFParticleBuilder.h"
 #include "ROOT/RVec.hxx"
-#include <nlohmann/json.hpp> 
+#include <nlohmann/json.hpp>
 #include "TruthMatcher.h"
 #include <optional>
 #include <unordered_map>
@@ -56,7 +56,7 @@
 //ONNX
 #include "onnxruntime_cxx_api.h"
 #include <torch/torch.h>
-#include "ONNXHelper.h" 
+#include "ONNXHelper.h"
 
 using RecoTruthLinkCollection = edm4hep::RecoMCParticleLinkCollection;
 using CaloTruthLinkCollection = edm4hep::CaloHitMCParticleLinkCollection;
@@ -235,7 +235,7 @@ struct PFHitML final:
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::CalorimeterHitCollection&,
     const edm4hep::TrackCollection&,
-    const edm4hep::MCParticleCollection&, 
+    const edm4hep::MCParticleCollection&,
     const CaloTruthLinkCollection&,
     const TrackTruthLinkCollection&
 
@@ -277,7 +277,7 @@ struct PFHitML final:
             KeyValues("HitPFIDs", {"HitPFIDs"}),  // Outputs
             KeyValues("HitPFMCTruthLink", {"HitPFMCTruthLink"}),
             KeyValues("HitPFUnassociatedTracks", {"HitPFUnassociatedTracks"})
-          }  
+          }
         ) {}
 
   // main
@@ -308,26 +308,26 @@ struct PFHitML final:
     debug() << "tracks: " << tracks.size() << endmsg;
 
     DataPreprocessing extractor(
-      EcalBarrel_hits, 
-      HcalBarrel_hits, 
-      EcalEndcap_hits, 
-      HcalEndcap_hits, 
+      EcalBarrel_hits,
+      HcalBarrel_hits,
+      EcalEndcap_hits,
+      HcalEndcap_hits,
       HcalOther_hits,
       Muon_hits,
       tracks,
       bFieldTesla.value()
     );
-    
+
     //get input variables
     auto inputs = extractor.extract();
     auto inputs_features = inputs.features;
-    //convert inputs to expected shape 
+    //convert inputs to expected shape
     auto clustering_input = extractor.convertModelInputs(inputs_features);
 
     if (m_eventCounter < m_maxDumpEvents) {
       dumpClusteringInputs(clustering_input, m_eventCounter);
     }
-   
+
     ///////////////////////////////////////////////////
     ////////// Inference Clustering Model //////////
     ///////////////////////////////////////////////////
@@ -335,7 +335,7 @@ struct PFHitML final:
     info() << "================ EVENT " << m_eventCounter << " ================" << endmsg;
 
 
-    
+
     std::vector<std::vector<float>>  outputs = m_onnx->runNamed(clustering_input.inputs);
 
     //get two outputs, first one has shape (N,4) (three coordinates in embedding space + beta)
@@ -345,7 +345,7 @@ struct PFHitML final:
       dumpClusteringOutput(outputs.at(0), m_eventCounter);
     }
 
-    
+
 
     /////////////////////////////////////
     ////////// CLUSTERING STEP //////////
@@ -391,20 +391,20 @@ struct PFHitML final:
         truthCfg
     );
 
-    
+
 
     ////////////////////////////////////
     //// ENERGY REGRESSION & PID ///////
     ////////////////////////////////////
 
-  
+
     //look here: https://github.com/selvaggi/mlpf/blob/main/src/utils/post_clustering_features.py
     auto prop_inputs = extractor.prepare_prop(showers); //determine and convert inputs for regression model
 
     if (m_eventCounter < m_maxDumpEvents) {
       dumpShowerRegressionInputs(showers, prop_inputs, m_eventCounter);
     }
-    
+
 
     //////////////////////////////////////////////////
     ////////// Inference Property Model //////////////
@@ -434,7 +434,7 @@ struct PFHitML final:
   // loop over showers per event
   for (size_t idx : split.charged) {
 
-    
+
     auto prop_outputs = m_onnx_prop_charged->runNamed(prop_inputs[idx].inputs);
     const auto& pidLogits = findPIDOutput(*m_onnx_prop_charged, prop_outputs);
     PIDPrediction pid = decodePIDLogits(pidLogits, chargedClassMap);
@@ -456,7 +456,7 @@ struct PFHitML final:
     fillRecoTruthLink(HitPFMCTruthLink, reco, showerTruthMatches[idx]);
 
     const auto pidObj = HitPFIDs.at(recoIndex);
-    
+
     debug() << "=== C++ final charged properties === "
           << "idx=" << idx
           << " calibrated_E=" << reco.getEnergy()
@@ -470,7 +470,7 @@ struct PFHitML final:
 
   for (size_t idx : split.neutral) {
 
-   
+
 
     auto prop_outputs = m_onnx_prop_neutral->runNamed(prop_inputs[idx].inputs);
     const auto& pidLogits = findPIDOutput(*m_onnx_prop_neutral, prop_outputs);
@@ -488,7 +488,7 @@ struct PFHitML final:
 
     ParticleRecoInfo recoInfo = buildNeutralRecoInfo(showers[idx], pid.physicsClass, pid.score, predictedEnergy, predictedDirection, predictedReferencePoint);
     recoInfo.pidScores = pid.scores;
-    
+
     evalBuilder.addRecoResult(idx, recoInfo);
 
     const auto recoIndex = HitPF.size();
@@ -523,16 +523,16 @@ struct PFHitML final:
 
 
   ++m_eventCounter;
-    
+
 
   return {std::move(HitPF), std::move(HitPFIDs), std::move(HitPFMCTruthLink), std::move(HitPFUnassociatedTracks)};  //outputs
 
   }
-  
+
 
   StatusCode initialize() override {
     info() << "Initializing PFHitML and loading model..." << endmsg;
-    
+
     m_onnx = std::make_unique<ONNXHelper>(model_path_clustering.value());
 
     m_onnx_prop_neutral = std::make_unique<ONNXHelper>(model_path_properties_neutral.value());
@@ -540,7 +540,7 @@ struct PFHitML final:
     m_onnx_prop_charged = std::make_unique<ONNXHelper>(model_path_properties_charged.value());
 
 
-   
+
     return StatusCode::SUCCESS;
   }
 
@@ -548,7 +548,7 @@ struct PFHitML final:
 
 
   private:
-  
+
 
   std::unique_ptr<ONNXHelper> m_onnx;
   std::unique_ptr<ONNXHelper> m_onnx_prop_neutral;

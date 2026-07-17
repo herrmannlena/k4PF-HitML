@@ -27,7 +27,7 @@
 #include "edm4hep/MCParticleCollection.h"
 
 #include <torch/torch.h>
-#include "ONNXHelper.h"  
+#include "ONNXHelper.h"
 
 #include "Shower.h"
 
@@ -35,7 +35,7 @@
 
 struct PreprocessedData {
    std::map<std::string, std::vector<float>> features;
-   std::vector<std::array<int64_t,3>> hit_mapping;  
+   std::vector<std::array<int64_t,3>> hit_mapping;
 };
 
 struct ClusteringInputs {
@@ -46,7 +46,7 @@ struct ClusteringInputs {
 struct PropertyInputs {
    std::vector<ONNXInput> inputs;
 };
- 
+
 class DataPreprocessing {
  public:
     DataPreprocessing(
@@ -58,15 +58,15 @@ class DataPreprocessing {
     const edm4hep::CalorimeterHitCollection& Muon_hits,
     const edm4hep::TrackCollection& tracks,
     float bFieldTesla = 2.0f);
-  
+
 
     PreprocessedData extract() const;
 
-    
+
     ClusteringInputs convertModelInputs(std::map<std::string, std::vector<float>> features) const;
     std::vector<PropertyInputs> prepare_prop(std::vector<Shower> shower) const;
- 
- 
+
+
    // helper function to return collections
     const edm4hep::CalorimeterHitCollection& ecalBarrel()   const { return ecalbarrel_; }
     const edm4hep::CalorimeterHitCollection& ecalEndcap()   const { return ecalendcap_; }
@@ -75,10 +75,10 @@ class DataPreprocessing {
     const edm4hep::CalorimeterHitCollection& hcalOther()    const { return hcalother_; }
     const edm4hep::CalorimeterHitCollection& muons()        const { return muons_; }
     const edm4hep::TrackCollection& tracks()                const { return tracks_; }
-      
-  
 
-   
+
+
+
  private:
     const edm4hep::CalorimeterHitCollection& ecalbarrel_;
     const edm4hep::CalorimeterHitCollection& hcalbarrel_;
@@ -88,8 +88,8 @@ class DataPreprocessing {
     const edm4hep::CalorimeterHitCollection& muons_;
     const edm4hep::TrackCollection& tracks_;
     float bFieldTesla_;
-   
+
 
   };
- 
+
   #endif // DATAPREPROCESSING_H

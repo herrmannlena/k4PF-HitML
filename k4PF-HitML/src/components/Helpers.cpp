@@ -23,17 +23,17 @@
  #include <torch/torch.h>
  #include "edm4hep/ReconstructedParticleCollection.h"
 
- 
+
 
  float mean_var( std::vector<float> obs){
 
   int n_hits = obs.size();
   float x_sum = 0;
-  
+
   for (int i = 0; i < n_hits; ++i) {
       x_sum += obs[i];
   }
-  
+
 
   return x_sum/n_hits;
 
@@ -49,7 +49,7 @@
     float n_sys_hits = collection.size();
 
     float dispersion = sys_e_sq / n_sys_hits - std::pow((sys_e/ n_sys_hits),2);
-    
+
     return dispersion;
  }
 
@@ -86,8 +86,7 @@ std::vector<std::vector<float>> one_hot_encode(std::vector<int> values, int n_cl
 
 
 
-    
 
 
- 
- 
+
+
