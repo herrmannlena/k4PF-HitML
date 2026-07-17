@@ -176,6 +176,16 @@ All exposed as `Gaudi::Property`s on `PFHitML`, settable from
 - **Energy** (`energy`): for neutral particles this is a regression output.
   For charged particles it is the driving track's momentum magnitude `|p|`.
 
+- **Predicted class (`HitPFIDs.type`)**: the canonical field for "which of
+  the 5 classes did the model predict" is `HitPFIDs`' `type`
+  (`ParticleID.type`, set via `pid.setType(recoInfo.physicsClass)`) --
+  `0`=electron, `1`=charged hadron, `2`=neutral hadron, `3`=photon,
+  `4`=muon. Use **this**, not PDG, to identify the predicted class: PDG
+  (both `HitPF.PDG` and `HitPFIDs.PDG`) is *derived from* `type` via a fixed
+  mass/species assumption per class (see below), not an independent
+  measurement -- e.g. every charged hadron gets PDG ±211 (pion) regardless
+  of whether it's actually a pion, kaon, or proton/
+  
 - **Mass / PDG**: fixed per predicted class, not species-specific --
   electron 0.511 MeV / PDG ±11, charged hadron **assumed pion** 139.57 MeV /
   PDG ±211, neutral hadron **assumed neutron** 939.57 MeV / PDG 2112, photon
