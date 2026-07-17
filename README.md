@@ -145,8 +145,7 @@ All exposed as `Gaudi::Property`s on `PFHitML`, settable from
 - The three ONNX model paths (`model_path_clustering`,
   `model_path_properties_neutral`, `model_path_properties_charged` --
   `--onnx_model_clustering`/`--onnx_model_properties_neutral`/
-  `--onnx_model_properties_charged` on the command line). See "ONNX models"
-  below for what each one does and what's needed to swap in a retrained one.
+  `--onnx_model_properties_charged` on the command line).
 - Density Peak Clustering parameters (`dpc_d_c`, `dpc_rho_min`,
   `dpc_delta_min`, `dpc_core_radius`).
 - Truth matching parameters (`truth_iou_threshold`, `truth_barrel_radius`,
