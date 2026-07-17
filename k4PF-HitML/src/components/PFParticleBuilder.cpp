@@ -30,39 +30,46 @@
 
 static float massFromPredictedClass(int predictedClass) {
   switch (predictedClass) {
-    case 0: return 0.000511f;   // electron
-    case 1: return 0.139570f;   // charged hadron -> pion mass
-    case 2: return 0.939565f;   // neutral hadron -> neutron mass
-    case 3: return 0.f;         // photon
-    case 4: return 0.105658f;   // muon
-    default: return 0.f;
+  case 0:
+    return 0.000511f; // electron
+  case 1:
+    return 0.139570f; // charged hadron -> pion mass
+  case 2:
+    return 0.939565f; // neutral hadron -> neutron mass
+  case 3:
+    return 0.f; // photon
+  case 4:
+    return 0.105658f; // muon
+  default:
+    return 0.f;
   }
 }
-
 
 static int pdgFromChargedClass(int predictedClass, int chargeSign) {
   switch (predictedClass) {
-    case 0: return (chargeSign < 0) ? 11 : -11;    // e- / e+
-    case 1: return (chargeSign > 0) ? 211 : -211;  // pi+ / pi-
-    case 4: return (chargeSign < 0) ? 13 : -13;    // mu- / mu+
-    default: return 0;
+  case 0:
+    return (chargeSign < 0) ? 11 : -11; // e- / e+
+  case 1:
+    return (chargeSign > 0) ? 211 : -211; // pi+ / pi-
+  case 4:
+    return (chargeSign < 0) ? 13 : -13; // mu- / mu+
+  default:
+    return 0;
   }
 }
-
 
 static int pdgFromNeutralClass(int predictedClass) {
   switch (predictedClass) {
-    case 2: return 2112;  // neutron
-    case 3: return 22;    // photon
-    default: return 0;
+  case 2:
+    return 2112; // neutron
+  case 3:
+    return 22; // photon
+  default:
+    return 0;
   }
 }
 
-
-const std::vector<float>& findPIDOutput(
-    const ONNXHelper& model,
-    const std::vector<std::vector<float>>& outputs
-) {
+const std::vector<float>& findPIDOutput(const ONNXHelper& model, const std::vector<std::vector<float>>& outputs) {
   const auto& names = model.outputNames();
 
   for (size_t i = 0; i < names.size() && i < outputs.size(); ++i) {
@@ -74,10 +81,7 @@ const std::vector<float>& findPIDOutput(
   throw std::runtime_error("Could not find PID output tensor");
 }
 
-PIDPrediction decodePIDLogits(
-    const std::vector<float>& logits,
-    const std::vector<int>& classMap
-) {
+PIDPrediction decodePIDLogits(const std::vector<float>& logits, const std::vector<int>& classMap) {
   if (logits.empty()) {
     throw std::runtime_error("PID logits are empty");
   }
@@ -110,10 +114,6 @@ PIDPrediction decodePIDLogits(
   return pred;
 }
 
-
-
-
-
 static edm4hep::Vector3f momentumFromTrackState(const edm4hep::TrackState& ts, float bFieldTesla) {
   const float pt = 2.99792e-4f * std::abs(bFieldTesla / ts.omega);
   const float px = std::cos(ts.phi) * pt;
@@ -122,9 +122,7 @@ static edm4hep::Vector3f momentumFromTrackState(const edm4hep::TrackState& ts, f
   return {px, py, pz};
 }
 
-static float momentumMagnitude(const edm4hep::Vector3f& p) {
-  return std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-}
+static float momentumMagnitude(const edm4hep::Vector3f& p) { return std::sqrt(p.x * p.x + p.y * p.y + p.z * p.z); }
 
 static const edm4hep::Track& pickBestTrack(const Shower& shower) {
   const auto& tracks = shower.getTracks();
@@ -137,8 +135,7 @@ static const edm4hep::Track& pickBestTrack(const Shower& shower) {
 
   for (size_t i = 0; i < tracks.size(); ++i) {
     const float ndf = tracks[i].getNdf();
-    const float score = (ndf > 0.f) ? tracks[i].getChi2() / ndf
-                                    : std::numeric_limits<float>::max();
+    const float score = (ndf > 0.f) ? tracks[i].getChi2() / ndf : std::numeric_limits<float>::max();
 
     if (score < bestScore) {
       bestScore = score;
@@ -147,9 +144,6 @@ static const edm4hep::Track& pickBestTrack(const Shower& shower) {
   }
   return tracks[bestIdx];
 }
-
-
-
 
 static int chargeSignFromTrack(const edm4hep::TrackState& ts) {
   // Verify convention once with your sample.
@@ -173,27 +167,19 @@ static edm4hep::Vector3f energyWeightedBarycenter(const std::vector<edm4hep::Cal
   return {x / sumE, y / sumE, z / sumE};
 }
 
-
-
-ParticleRecoInfo buildChargedRecoInfo(
-    const Shower& shower,
-    int predictedClass,
-    float pidScore,
-    float bFieldTesla,
-    bool reassignLowPMuons,
-    float muonToChargedHadronPThreshold
-) {
+ParticleRecoInfo buildChargedRecoInfo(const Shower& shower, int predictedClass, float pidScore, float bFieldTesla,
+                                      bool reassignLowPMuons, float muonToChargedHadronPThreshold) {
   ParticleRecoInfo out{};
 
   const auto& trk = pickBestTrack(shower);
   out.tracks = {trk};
-  const auto& ts = trk.getTrackStates()[0];      // AtIP -- momentum, matches Python's pos_pxpypz_at_vertex
-  const auto& tsCalo = trk.getTrackStates()[3];  // AtCalorimeter -- reference point
+  const auto& ts = trk.getTrackStates()[0];     // AtIP -- momentum, matches Python's pos_pxpypz_at_vertex
+  const auto& tsCalo = trk.getTrackStates()[3]; // AtCalorimeter -- reference point
 
   const auto p3 = momentumFromTrackState(ts, bFieldTesla);
   const float p = momentumMagnitude(p3);
 
-  //reassign low momentum muon to CH
+  // reassign low momentum muon to CH
   int effectiveClass = predictedClass;
   if (reassignLowPMuons && predictedClass == 4 && p < muonToChargedHadronPThreshold) {
     effectiveClass = 1;
@@ -201,17 +187,13 @@ ParticleRecoInfo buildChargedRecoInfo(
   const float mass = massFromPredictedClass(effectiveClass);
   const int chargeSign = chargeSignFromTrack(ts);
 
-
   // Reference point = energy-weighted shower barycenter minus the picked
   // track's calorimeter-entry position
   const auto barycenter = energyWeightedBarycenter(shower.getCalorimeterHits());
 
   out.momentum = p3;
-  out.referencePoint = {
-      barycenter.x - tsCalo.referencePoint.x,
-      barycenter.y - tsCalo.referencePoint.y,
-      barycenter.z - tsCalo.referencePoint.z
-  };
+  out.referencePoint = {barycenter.x - tsCalo.referencePoint.x, barycenter.y - tsCalo.referencePoint.y,
+                        barycenter.z - tsCalo.referencePoint.z};
   out.energy = p;
   out.pidScore = pidScore;
   out.physicsClass = effectiveClass;
@@ -222,13 +204,8 @@ ParticleRecoInfo buildChargedRecoInfo(
   return out;
 }
 
-
-void fillRecoParticle(
-    edm4hep::ReconstructedParticleCollection& pfParticles,
-    edm4hep::ParticleIDCollection& pfParticleIDs,
-    const Shower&,
-    const ParticleRecoInfo& recoInfo
-) {
+void fillRecoParticle(edm4hep::ReconstructedParticleCollection& pfParticles,
+                      edm4hep::ParticleIDCollection& pfParticleIDs, const Shower&, const ParticleRecoInfo& recoInfo) {
   auto rp = pfParticles.create();
   auto pid = pfParticleIDs.create();
 
@@ -245,7 +222,6 @@ void fillRecoParticle(
   rp.setGoodnessOfPID(recoInfo.pidScore);
   rp.setPDG(recoInfo.pdg);
 
-
   pid.setLikelihood(recoInfo.pidScore);
   pid.setType(recoInfo.physicsClass);
   pid.setPDG(recoInfo.pdg);
@@ -253,29 +229,19 @@ void fillRecoParticle(
   for (float s : recoInfo.pidScores) {
     pid.addToParameters(s);
   }
-
 }
-
 
 edm4hep::Vector3f computeNeutralDirection(const edm4hep::Vector3f& referencePoint) {
 
-  const float norm = std::sqrt(
-      referencePoint.x * referencePoint.x +
-      referencePoint.y * referencePoint.y +
-      referencePoint.z * referencePoint.z
-  );
+  const float norm = std::sqrt(referencePoint.x * referencePoint.x + referencePoint.y * referencePoint.y +
+                               referencePoint.z * referencePoint.z);
 
   if (norm <= 0.f) {
     throw std::runtime_error("Neutral reference point has zero norm");
   }
 
-  return {
-      referencePoint.x / norm,
-      referencePoint.y / norm,
-      referencePoint.z / norm
-  };
+  return {referencePoint.x / norm, referencePoint.y / norm, referencePoint.z / norm};
 }
-
 
 edm4hep::Vector3f computeNeutralReferencePoint(const Shower& shower) {
   const auto& ecalHits = shower.ecalHits_;
@@ -289,29 +255,19 @@ edm4hep::Vector3f computeNeutralReferencePoint(const Shower& shower) {
   // mask_ecal_only = (n_ecal_hits / (n_hcal_hits + n_ecal_hits)) > 0.05
   const bool useEcalOnly = (denom > 0.f) ? ((nEcal / denom) > 0.05f) : false;
 
-  return useEcalOnly ? energyWeightedBarycenter(ecalHits)
-                      : energyWeightedBarycenter(shower.getCalorimeterHits());
+  return useEcalOnly ? energyWeightedBarycenter(ecalHits) : energyWeightedBarycenter(shower.getCalorimeterHits());
 }
 
-ParticleRecoInfo buildNeutralRecoInfo(
-    const Shower&,
-    int predictedClass,
-    float pidScore,
-    float predictedEnergy,
-    const edm4hep::Vector3f& predictedDirection,
-    const edm4hep::Vector3f& predictedReferencePoint
-) {
+ParticleRecoInfo buildNeutralRecoInfo(const Shower&, int predictedClass, float pidScore, float predictedEnergy,
+                                      const edm4hep::Vector3f& predictedDirection,
+                                      const edm4hep::Vector3f& predictedReferencePoint) {
   ParticleRecoInfo out{};
 
   const float mass = massFromPredictedClass(predictedClass);
 
   const float pMag = std::sqrt(std::max(0.f, predictedEnergy * predictedEnergy - mass * mass));
 
-  out.momentum = {
-      predictedDirection.x * pMag,
-      predictedDirection.y * pMag,
-      predictedDirection.z * pMag
-  };
+  out.momentum = {predictedDirection.x * pMag, predictedDirection.y * pMag, predictedDirection.z * pMag};
   out.referencePoint = predictedReferencePoint;
   out.direction = predictedDirection;
 
@@ -323,10 +279,3 @@ ParticleRecoInfo buildNeutralRecoInfo(
 
   return out;
 }
-
-
-
-
-
-
-

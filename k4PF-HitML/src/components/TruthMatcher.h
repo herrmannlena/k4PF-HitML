@@ -39,9 +39,6 @@
 #include <utility>
 #include <vector>
 
-
-
-
 struct TruthMatchConfig {
   float iouThreshold{0.25f};
   float barrelRadius{2150.f};
@@ -53,13 +50,9 @@ struct ObjectIDKey {
   int index{-1};
   unsigned collectionID{0};
 
-  bool operator==(const ObjectIDKey& other) const {
-    return index == other.index && collectionID == other.collectionID;
-  }
+  bool operator==(const ObjectIDKey& other) const { return index == other.index && collectionID == other.collectionID; }
 
-  bool valid() const {
-    return index >= 0;
-  }
+  bool valid() const { return index >= 0; }
 };
 
 struct ObjectIDKeyHash {
@@ -70,9 +63,7 @@ struct ObjectIDKeyHash {
   }
 };
 
-inline ObjectIDKey makeKey(const podio::ObjectID& id) {
-  return ObjectIDKey{id.index, id.collectionID};
-}
+inline ObjectIDKey makeKey(const podio::ObjectID& id) { return ObjectIDKey{id.index, id.collectionID}; }
 
 struct TruthLabel {
   bool valid{false};
@@ -93,9 +84,7 @@ namespace truth_detail {
 constexpr int BIT_BACKSCATTER = 29;
 constexpr int BIT_DECAYED_IN_TRACKER = 27;
 
-inline bool checkBit(int value, int bit) {
-  return ((value >> bit) & 1) == 1;
-}
+inline bool checkBit(int value, int bit) { return ((value >> bit) & 1) == 1; }
 
 inline bool backscatteredAndTracker(int simStatus) {
   const bool decayedInTracker = checkBit(simStatus, BIT_DECAYED_IN_TRACKER);
@@ -103,12 +92,7 @@ inline bool backscatteredAndTracker(int simStatus) {
   return backscatter && !decayedInTracker;
 }
 
-inline bool isProducedInCalo(
-    const edm4hep::Vector3d& vtx,
-    float barrelRadius,
-    int nBarrelSides,
-    float endCapZ
-) {
+inline bool isProducedInCalo(const edm4hep::Vector3d& vtx, float barrelRadius, int nBarrelSides, float endCapZ) {
   bool producedInCalo = false;
   for (int i = 0; i < nBarrelSides; ++i) {
     const double angle = 2.0 * std::numbers::pi * static_cast<double>(i) / static_cast<double>(nBarrelSides);
@@ -125,14 +109,9 @@ inline bool isProducedInCalo(
   return producedInCalo;
 }
 
-inline edm4hep::MCParticle remapToCaloMother(
-    edm4hep::MCParticle mc,
-    const TruthMatchConfig& cfg
-) {
+inline edm4hep::MCParticle remapToCaloMother(edm4hep::MCParticle mc, const TruthMatchConfig& cfg) {
   while (mc.isAvailable()) {
-    const bool producedInCalo = isProducedInCalo(
-        mc.getVertex(), cfg.barrelRadius, cfg.nBarrelSides, cfg.endCapZ
-    );
+    const bool producedInCalo = isProducedInCalo(mc.getVertex(), cfg.barrelRadius, cfg.nBarrelSides, cfg.endCapZ);
     const bool keepAsIs = backscatteredAndTracker(mc.getSimulatorStatus());
 
     if (!producedInCalo || keepAsIs) {
@@ -150,11 +129,7 @@ inline edm4hep::MCParticle remapToCaloMother(
 
 template <typename LinkCollectionT>
 std::unordered_map<ObjectIDKey, TruthLabel, ObjectIDKeyHash>
-buildBestTruthMap(
-    const LinkCollectionT& links,
-    bool remapCaloMother,
-    const TruthMatchConfig& cfg
-) {
+buildBestTruthMap(const LinkCollectionT& links, bool remapCaloMother, const TruthMatchConfig& cfg) {
   struct BestLinkInfo {
     float weight{-std::numeric_limits<float>::infinity()};
     edm4hep::MCParticle mc{};
@@ -194,16 +169,14 @@ std::vector<T> uniqueVector(std::vector<T> v) {
     }
     return a.collectionID < b.collectionID;
   });
-  v.erase(std::unique(v.begin(), v.end(), [](const T& a, const T& b) {
-    return a.index == b.index && a.collectionID == b.collectionID;
-  }), v.end());
+  v.erase(std::unique(v.begin(), v.end(),
+                      [](const T& a, const T& b) { return a.index == b.index && a.collectionID == b.collectionID; }),
+          v.end());
   return v;
 }
 
 // Hungarian maximization by converting to minimization cost.
-inline std::vector<std::pair<int, int>> hungarianMaximize(
-    const std::vector<std::vector<float>>& score
-) {
+inline std::vector<std::pair<int, int>> hungarianMaximize(const std::vector<std::vector<float>>& score) {
   const int nRows = static_cast<int>(score.size());
   const int nCols = (nRows > 0) ? static_cast<int>(score[0].size()) : 0;
   const int n = std::max(nRows, nCols);
@@ -286,12 +259,9 @@ inline std::vector<std::pair<int, int>> hungarianMaximize(
 } // namespace truth_detail
 
 template <typename CaloLinkCollectionT, typename TrackLinkCollectionT>
-std::vector<ShowerTruthMatch> matchShowersByIoU(
-    const std::vector<Shower>& showers,
-    const CaloLinkCollectionT& caloTruthLinks,
-    const TrackLinkCollectionT& trackTruthLinks,
-    const TruthMatchConfig& cfg = {}
-) {
+std::vector<ShowerTruthMatch>
+matchShowersByIoU(const std::vector<Shower>& showers, const CaloLinkCollectionT& caloTruthLinks,
+                  const TrackLinkCollectionT& trackTruthLinks, const TruthMatchConfig& cfg = {}) {
   const auto hitTruth = truth_detail::buildBestTruthMap(caloTruthLinks, true, cfg);
   const auto trackTruth = truth_detail::buildBestTruthMap(trackTruthLinks, false, cfg);
 
@@ -393,11 +363,8 @@ std::vector<ShowerTruthMatch> matchShowersByIoU(
   return result;
 }
 
-inline void fillRecoTruthLink(
-    edm4hep::RecoMCParticleLinkCollection& outLinks,
-    const edm4hep::ReconstructedParticle& reco,
-    const ShowerTruthMatch& match
-) {
+inline void fillRecoTruthLink(edm4hep::RecoMCParticleLinkCollection& outLinks,
+                              const edm4hep::ReconstructedParticle& reco, const ShowerTruthMatch& match) {
   if (!match.matched) {
     return;
   }
@@ -416,11 +383,9 @@ struct TruthRecoSummary {
 };
 
 template <typename CaloLinkCollectionT, typename TrackLinkCollectionT>
-std::vector<TruthRecoSummary> collectTruthRecoSummaries(
-    const CaloLinkCollectionT& caloTruthLinks,
-    const TrackLinkCollectionT& trackTruthLinks,
-    const TruthMatchConfig& cfg = {}
-) {
+std::vector<TruthRecoSummary> collectTruthRecoSummaries(const CaloLinkCollectionT& caloTruthLinks,
+                                                        const TrackLinkCollectionT& trackTruthLinks,
+                                                        const TruthMatchConfig& cfg = {}) {
   const auto hitTruth = truth_detail::buildBestTruthMap(caloTruthLinks, true, cfg);
   const auto trackTruth = truth_detail::buildBestTruthMap(trackTruthLinks, false, cfg);
 
@@ -481,4 +446,3 @@ std::vector<TruthRecoSummary> collectTruthRecoSummaries(
 
   return result;
 }
-

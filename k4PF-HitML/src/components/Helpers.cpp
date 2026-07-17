@@ -16,51 +16,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- #include "Helpers.h"
+#include "Helpers.h"
 
+#include "Gaudi/Property.h"
+#include "edm4hep/ReconstructedParticleCollection.h"
+#include <torch/torch.h>
 
- #include "Gaudi/Property.h"
- #include <torch/torch.h>
- #include "edm4hep/ReconstructedParticleCollection.h"
-
-
-
- float mean_var( std::vector<float> obs){
+float mean_var(std::vector<float> obs) {
 
   int n_hits = obs.size();
   float x_sum = 0;
 
   for (int i = 0; i < n_hits; ++i) {
-      x_sum += obs[i];
+    x_sum += obs[i];
   }
 
+  return x_sum / n_hits;
+}
 
-  return x_sum/n_hits;
+// var = E(x^2) - E(x)^2
+float disperion(Shower shower_i, std::vector<edm4hep::CalorimeterHit> collection) {
 
- }
+  float sys_e = shower_i.getCaloEnergy(collection).first;
+  float sys_e_sq = shower_i.getCaloEnergy(collection).second;
 
+  float n_sys_hits = collection.size();
 
-  // var = E(x^2) - E(x)^2
- float disperion(Shower shower_i, std::vector<edm4hep::CalorimeterHit> collection){
+  float dispersion = sys_e_sq / n_sys_hits - std::pow((sys_e / n_sys_hits), 2);
 
-    float sys_e = shower_i.getCaloEnergy(collection).first;
-    float sys_e_sq = shower_i.getCaloEnergy(collection).second;
+  return dispersion;
+}
 
-    float n_sys_hits = collection.size();
-
-    float dispersion = sys_e_sq / n_sys_hits - std::pow((sys_e/ n_sys_hits),2);
-
-    return dispersion;
- }
-
- float calculate_phi(float x, float y) {
+float calculate_phi(float x, float y) {
   // matches numpy arctan2(y, x)
   return std::atan2(y, x);
 }
 
 float calculate_eta(float x, float y, float z) {
   // theta = arctan2( sqrt(x^2 + y^2), z )
-  float r = std::sqrt(x*x + y*y);
+  float r = std::sqrt(x * x + y * y);
   float theta = std::atan2(r, z);
 
   // eta = -log( tan(theta/2) )
@@ -68,25 +62,17 @@ float calculate_eta(float x, float y, float z) {
 
   // avoid log(0) if theta is 0
   if (tan_half_theta == 0.0f)
-      return 0.0f;
+    return 0.0f;
 
   return -std::log(tan_half_theta);
 }
 
-
 std::vector<std::vector<float>> one_hot_encode(std::vector<int> values, int n_classes) {
   std::vector<std::vector<float>> out(values.size(), std::vector<float>(n_classes, 0.0f));
   for (std::size_t i = 0; i < values.size(); ++i) {
-      int idx = values[i];
-      if (idx >= 0 && idx < n_classes)
-          out[i][idx] = 1.0f;
+    int idx = values[i];
+    if (idx >= 0 && idx < n_classes)
+      out[i][idx] = 1.0f;
   }
   return out;
 }
-
-
-
-
-
-
-

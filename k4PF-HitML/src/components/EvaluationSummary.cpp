@@ -21,28 +21,19 @@
 #include <stdexcept>
 #include <unordered_map>
 
-EvaluationSummaryBuilder::EvaluationSummaryBuilder(
-    const std::vector<Shower>& showers,
-    const std::vector<ShowerTruthMatch>& matches,
-    const std::vector<TruthRecoSummary>& truthSummaries
-)
-    : m_showers(showers),
-      m_matches(matches),
-      m_truthSummaries(truthSummaries),
-      m_recoInfoPerShower(showers.size()),
+EvaluationSummaryBuilder::EvaluationSummaryBuilder(const std::vector<Shower>& showers,
+                                                   const std::vector<ShowerTruthMatch>& matches,
+                                                   const std::vector<TruthRecoSummary>& truthSummaries)
+    : m_showers(showers), m_matches(matches), m_truthSummaries(truthSummaries), m_recoInfoPerShower(showers.size()),
       m_predClusterEnergyPerShower(showers.size(), 0.f) {}
 
-void EvaluationSummaryBuilder::addRecoResult(
-    std::size_t showerIdx,
-    const ParticleRecoInfo& recoInfo
-) {
+void EvaluationSummaryBuilder::addRecoResult(std::size_t showerIdx, const ParticleRecoInfo& recoInfo) {
   if (showerIdx >= m_showers.size()) {
     throw std::out_of_range("showerIdx out of range in EvaluationSummaryBuilder");
   }
 
   m_recoInfoPerShower[showerIdx] = recoInfo;
-  m_predClusterEnergyPerShower[showerIdx] =
-      m_showers[showerIdx].getCaloEnergy(m_showers[showerIdx].caloHits_).first;
+  m_predClusterEnergyPerShower[showerIdx] = m_showers[showerIdx].getCaloEnergy(m_showers[showerIdx].caloHits_).first;
 }
 
 std::vector<EvalRow> EvaluationSummaryBuilder::finalize() const {
@@ -57,7 +48,7 @@ std::vector<EvalRow> EvaluationSummaryBuilder::finalize() const {
     row.truthIndex = ts.key.index;
     row.truthCollectionID = ts.key.collectionID;
     row.trueEnergy = ts.mc.getEnergy();
-    //row.truePDG = ts.mc.getPDG();
+    // row.truePDG = ts.mc.getPDG();
     row.recoShowersE = ts.recoCaloEnergy;
     row.isTrackInMC = ts.nTracks;
     row.genStatus = ts.mc.getGeneratorStatus();
@@ -93,7 +84,7 @@ std::vector<EvalRow> EvaluationSummaryBuilder::finalize() const {
       row.calibratedE = reco.energy;
       row.predShowersE = m_predClusterEnergyPerShower[idx];
       row.predClass = reco.physicsClass;
-      //row.predPDG = reco.pdg;
+      // row.predPDG = reco.pdg;
       row.pidScore = reco.pidScore;
       row.iou = match.iou;
 
@@ -113,7 +104,7 @@ std::vector<EvalRow> EvaluationSummaryBuilder::finalize() const {
       row.calibratedE = reco.energy;
       row.predShowersE = m_predClusterEnergyPerShower[idx];
       row.predClass = reco.physicsClass;
-      //row.predPDG = reco.pdg;
+      // row.predPDG = reco.pdg;
       row.pidScore = reco.pidScore;
 
       row.px = reco.momentum.x;

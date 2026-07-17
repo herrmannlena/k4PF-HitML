@@ -66,11 +66,8 @@ struct EvalRow {
 
 class EvaluationSummaryBuilder {
 public:
-  EvaluationSummaryBuilder(
-      const std::vector<Shower>& showers,
-      const std::vector<ShowerTruthMatch>& matches,
-      const std::vector<TruthRecoSummary>& truthSummaries
-  );
+  EvaluationSummaryBuilder(const std::vector<Shower>& showers, const std::vector<ShowerTruthMatch>& matches,
+                           const std::vector<TruthRecoSummary>& truthSummaries);
 
   void addRecoResult(std::size_t showerIdx, const ParticleRecoInfo& recoInfo);
 

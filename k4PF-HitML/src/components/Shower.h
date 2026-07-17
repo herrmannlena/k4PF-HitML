@@ -20,57 +20,46 @@
 #ifndef SHOWER_H
 #define SHOWER_H
 
-//edm4hep imports
-#include "edm4hep/TrackCollection.h"
+// edm4hep imports
 #include "edm4hep/CalorimeterHitCollection.h"
+#include "edm4hep/TrackCollection.h"
 
 // shower object, assig energy, direction, PID..
 
 class Shower {
 public:
-    void addCalorimeterHit(const edm4hep::CalorimeterHit& hit, const std::string collection = "");
+  void addCalorimeterHit(const edm4hep::CalorimeterHit& hit, const std::string collection = "");
 
-    void addTrack(const edm4hep::Track& track) {
-        tracks_.push_back(track);
-        types_.push_back(1);
-    }
+  void addTrack(const edm4hep::Track& track) {
+    tracks_.push_back(track);
+    types_.push_back(1);
+  }
 
-    void addBetas(float beta) {
-        betas_.push_back(beta);
-    }
+  void addBetas(float beta) { betas_.push_back(beta); }
 
+  const std::vector<edm4hep::CalorimeterHit>& getCalorimeterHits() const { return caloHits_; }
 
-    const std::vector<edm4hep::CalorimeterHit>& getCalorimeterHits() const {
-        return caloHits_;
-    }
+  const std::vector<edm4hep::Track>& getTracks() const { return tracks_; }
 
-    const std::vector<edm4hep::Track>& getTracks() const {
-        return tracks_;
-    }
+  std::pair<float, float> getCaloEnergy(std::vector<edm4hep::CalorimeterHit> collection) const;
 
-    std::pair<float, float> getCaloEnergy(std::vector<edm4hep::CalorimeterHit> collection) const;
+  const float getTrackMomentum_mean(float bFieldTesla = 2.0f); // retruns mean track momentum per shower
 
-    const float getTrackMomentum_mean(float bFieldTesla = 2.0f); //retruns mean track momentum per shower
+  const float Chi2_mean();
 
-    const float Chi2_mean();
+  const std::tuple<std::vector<float>, std::vector<float>, std::vector<float>> get_pos();
 
-    const std::tuple<std::vector<float>, std::vector<float>, std::vector<float>> get_pos();
+  const std::tuple<std::vector<float>, std::vector<float>> get_ep(float bFieldTesla = 2.0f);
 
-    const std::tuple<std::vector<float>, std::vector<float>> get_ep(float bFieldTesla = 2.0f);
+  std::vector<edm4hep::CalorimeterHit> caloHits_;
+  std::vector<edm4hep::CalorimeterHit> ecalHits_;
+  std::vector<edm4hep::CalorimeterHit> hcalHits_;
+  std::vector<edm4hep::CalorimeterHit> muonHits_;
+  std::vector<edm4hep::Track> tracks_;
 
-
-    std::vector<edm4hep::CalorimeterHit> caloHits_;
-    std::vector<edm4hep::CalorimeterHit> ecalHits_;
-    std::vector<edm4hep::CalorimeterHit> hcalHits_;
-    std::vector<edm4hep::CalorimeterHit> muonHits_;
-    std::vector<edm4hep::Track> tracks_;
-
-    std::vector<int> types_;
-    std::vector<float> betas_;
-    int64_t label_ = -1;  // DPC cluster label this shower was built from (validation/debugging)
-
-
-
+  std::vector<int> types_;
+  std::vector<float> betas_;
+  int64_t label_ = -1; // DPC cluster label this shower was built from (validation/debugging)
 };
 
 struct ShowerSplit {
@@ -79,6 +68,5 @@ struct ShowerSplit {
 };
 
 ShowerSplit splitShowersByTrackContent(const std::vector<Shower>& showers);
-
 
 #endif // SHOWER_H

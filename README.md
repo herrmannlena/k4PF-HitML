@@ -185,7 +185,7 @@ All exposed as `Gaudi::Property`s on `PFHitML`, settable from
   mass/species assumption per class (see below), not an independent
   measurement -- e.g. every charged hadron gets PDG ±211 (pion) regardless
   of whether it's actually a pion, kaon, or proton/
-  
+
 - **Mass / PDG**: fixed per predicted class, not species-specific --
   electron 0.511 MeV / PDG ±11, charged hadron **assumed pion** 139.57 MeV /
   PDG ±211, neutral hadron **assumed neutron** 939.57 MeV / PDG 2112, photon

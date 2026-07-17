@@ -17,31 +17,25 @@
  * limitations under the License.
  */
 
+#ifndef HELPERS_H
+#define HELPERS_H
 
- #ifndef HELPERS_H
- #define HELPERS_H
+#include <fstream>
+#include <iostream>
+#include <nlohmann/json.hpp> // Include a JSON parsing library
+#include <string>
+#include <unordered_map>
 
- #include <fstream>
- #include <iostream>
- #include <nlohmann/json.hpp> // Include a JSON parsing library
- #include <string>
- #include <unordered_map>
+#include "ROOT/RVec.hxx"
+#include "Shower.h"
+#include "edm4hep/ReconstructedParticleCollection.h"
+#include <torch/torch.h>
+// #include "Structs.h"
 
- #include "ROOT/RVec.hxx"
- #include <torch/torch.h>
- #include "edm4hep/ReconstructedParticleCollection.h"
- #include "Shower.h"
- //#include "Structs.h"
+float mean_var(std::vector<float> features);
+float disperion(Shower shower_i, std::vector<edm4hep::CalorimeterHit>);
+float calculate_eta(float x, float y, float z);
+float calculate_phi(float x, float y);
+std::vector<std::vector<float>> one_hot_encode(std::vector<int>, int n_classes);
 
-
-
-
-  float mean_var(std::vector<float> features);
-  float disperion(Shower shower_i, std::vector<edm4hep::CalorimeterHit>);
-  float calculate_eta(float x, float y, float z);
-  float calculate_phi(float x, float y);
-  std::vector<std::vector<float>> one_hot_encode(std::vector<int>, int n_classes);
-
-
-
- #endif // HELPERS_H
+#endif // HELPERS_H
