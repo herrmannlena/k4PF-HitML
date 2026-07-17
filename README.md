@@ -142,6 +142,11 @@ the `HitPF`/`HitPFIDs`/`HitPFMCTruthLink` (and, if enabled,
 All exposed as `Gaudi::Property`s on `PFHitML`, settable from
 `options/PerformMLPF.py`:
 
+- The three ONNX model paths (`model_path_clustering`,
+  `model_path_properties_neutral`, `model_path_properties_charged` --
+  `--onnx_model_clustering`/`--onnx_model_properties_neutral`/
+  `--onnx_model_properties_charged` on the command line). See "ONNX models"
+  below for what each one does and what's needed to swap in a retrained one.
 - Density Peak Clustering parameters (`dpc_d_c`, `dpc_rho_min`,
   `dpc_delta_min`, `dpc_core_radius`).
 - Truth matching parameters (`truth_iou_threshold`, `truth_barrel_radius`,
@@ -156,6 +161,37 @@ All exposed as `Gaudi::Property`s on `PFHitML`, settable from
   the `HitPFUnassociatedTracks` output collection (off by default) -- e.g.
   for invariant-mass calculations that want to recover tracks `HitPF` itself
   drops (charged particles that curl up before reaching the calorimeter).
+
+
+## ONNX models
+
+- **`--onnx_model_clustering`** -- the condensation/clustering model. Takes
+  the full per-event hit+track feature graph (`DataPreprocessing.cpp`) and
+  outputs, per node, a 4-vector: 3 embedding-space coordinates + 1 beta
+  (condensation confidence) value. DPC clustering (`Clustering.cpp`) then
+  runs entirely on this output -- the clustering model itself does not
+  decide cluster membership, only the embedding it's clustered in.
+- **`--onnx_model_properties_neutral`** -- the neutral shower regression/PID
+  model. Takes a neutral shower's aggregated features
+  (`DataPreprocessing::prepare_prop`) and outputs calibrated energy (first
+  output tensor) and PID logits (neutral hadron vs. photon) used to build
+  the `HitPF` particle's `energy`/`mass`/`PDG`.
+- **`--onnx_model_properties_charged`** -- the charged shower PID model.
+  Takes a charged shower's aggregated features (including the driving
+  track's own properties) and outputs PID logits only (electron / charged
+  hadron / muon) -- momentum for charged particles comes directly from the
+  driving track's curvature, not from this model (see "HitPF output
+  collection conventions" below).
+
+To replace any of these with a retrained model, just point the corresponding
+argument at the new file:
+
+``` bash
+k4run k4PF-HitML/options/PerformMLPF.py --inputFiles <input.edm4hep.root> \
+  --onnx_model_clustering /path/to/new_clustering.onnx \
+  --onnx_model_properties_neutral /path/to/new_neutral.onnx \
+  --onnx_model_properties_charged /path/to/new_charged.onnx
+```
 
 ## HitPF output collection conventions
 
