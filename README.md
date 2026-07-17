@@ -76,7 +76,8 @@ missed).
 Run, from the `k4PFHitML` directory:
 
 ``` bash
-source /cvmfs/sw.hsf.org/key4hep/setup.sh
+cd /your/path/to/this/repo/k4PFHitML/
+source ./setup.sh
 k4_local_repo
 mkdir build
 cd build
