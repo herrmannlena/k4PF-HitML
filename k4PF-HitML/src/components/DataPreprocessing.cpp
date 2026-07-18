@@ -48,6 +48,15 @@ PreprocessedData DataPreprocessing::extract() const {
   auto& features = out.features;
   auto& hit_mapping = out.hit_mapping;
 
+  features["pos_hits_xyz_hits"];
+  features["e_hits"];
+  features["p_hits"];
+  features["hit_type_feature_hit"];
+  features["pos_hits_xyz_tracks"];
+  features["e_tracks"];
+  features["p_tracks"];
+  features["hit_type_feature_track"];
+
   // collection of hits
   std::vector<std::pair<std::string, const edm4hep::CalorimeterHitCollection*>> hit_collections = {
       {"ECAL_BARREL", &ecalbarrel_}, {"ECAL_ENDCAP", &ecalendcap_}, {"HCAL_BARREL", &hcalbarrel_},
