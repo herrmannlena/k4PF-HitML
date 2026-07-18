@@ -219,6 +219,4 @@ ONNXHelper::Tensor<float> ONNXHelper::runNamed(std::vector<ONNXInput>& inputs) c
   return outputs;
 }
 
-static Ort::MemoryInfo CpuMemInfo() { return Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault); }
-
 template ONNXHelper::Tensor<float> ONNXHelper::run(Tensor<float>&, const Tensor<long>&, unsigned long long) const;

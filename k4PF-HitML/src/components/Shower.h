@@ -43,9 +43,9 @@ public:
 
   std::pair<float, float> getCaloEnergy(std::vector<edm4hep::CalorimeterHit> collection) const;
 
-  const float getTrackMomentum_mean(float bFieldTesla = 2.0f); // retruns mean track momentum per shower
+  float getTrackMomentum_mean(float bFieldTesla = 2.0f); // retruns mean track momentum per shower
 
-  const float Chi2_mean();
+  float Chi2_mean();
 
   const std::tuple<std::vector<float>, std::vector<float>, std::vector<float>> get_pos();
 
