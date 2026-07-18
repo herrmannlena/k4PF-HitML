@@ -47,10 +47,10 @@ function(set_test_env _testname)
     )
 endfunction()
 
-SET(test_name "test_PerformMLPF")
+SET(test_name "test_PerformHitPF")
 ExternalData_Add_Test(${test_name}
     NAME ${test_name}
-    COMMAND sh +x k4PF-HitML/test/test_PerformMLPF.sh
+    COMMAND sh +x k4PF-HitML/test/test_PerformHitPF.sh
             DATA{${CMAKE_SOURCE_DIR}/k4PF-HitML/test/models/clustering_test.onnx}
             DATA{${CMAKE_SOURCE_DIR}/k4PF-HitML/test/models/regression_neutral_test.onnx}
             DATA{${CMAKE_SOURCE_DIR}/k4PF-HitML/test/models/regression_charged_test.onnx})
