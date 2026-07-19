@@ -95,6 +95,5 @@ ApplicationMgr(TopAlg=[Multitransformer],
                #ExtSvc=[k4DataSvc("EventDataSvc")],
                ExtSvc=[svc],
                OutputLevel=INFO,
-               PluginDebugLevel=1,
                )
 
