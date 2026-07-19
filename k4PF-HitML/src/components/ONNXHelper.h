@@ -108,8 +108,6 @@ public:
 
   Tensor<float> runNamed(std::vector<ONNXInput>& inputs) const;
 
-  static Ort::MemoryInfo CpuMemInfo();
-
 private:
   /**
    * @brief Retrieves the position of a variable in the input names list.

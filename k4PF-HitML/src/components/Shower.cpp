@@ -58,7 +58,7 @@ void Shower::addCalorimeterHit(const edm4hep::CalorimeterHit& hit, const std::st
   }
 }
 
-const float Shower::getTrackMomentum_mean(float bFieldTesla) {
+float Shower::getTrackMomentum_mean(float bFieldTesla) {
 
   const float n_tracks = tracks_.size();
 
@@ -83,7 +83,7 @@ const float Shower::getTrackMomentum_mean(float bFieldTesla) {
   return p_sum / n_tracks;
 }
 
-const float Shower::Chi2_mean() {
+float Shower::Chi2_mean() {
 
   const float n_tracks = tracks_.size();
 
